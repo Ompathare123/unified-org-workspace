@@ -12,6 +12,8 @@ import reviewRoutes from "./routes/review.routes";
 import versionRoutes from "./routes/version.routes";
 import attachmentRoutes from "./routes/attachment.routes";
 import auditRoutes from "./routes/audit.routes";
+import connectionRoutes from "./routes/connection.routes";
+import shareRoutes from "./routes/share.routes";
 import ReviewController from "./controllers/review.controller";
 import VersionController from "./controllers/version.controller";
 import AttachmentController from "./controllers/attachment.controller";
@@ -68,6 +70,10 @@ app.delete("/api/attachments/:attachmentId", authenticate, requireRole(Role.ORG_
 // ── Audit Logs ─────────────────────────────────────────────────────────────
 // GET /api/audit-logs
 app.use("/api/audit-logs", auditRoutes);
+
+// ── Cross-Org Connections & Sharing ────────────────────────────────────────
+app.use("/api/connections", connectionRoutes);
+app.use("/api/share", shareRoutes);
 
 // ── Comments (legacy import workaround) ────────────────────────────────────
 const commentRouter =
