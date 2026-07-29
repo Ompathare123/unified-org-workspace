@@ -57,7 +57,7 @@ class TicketController {
         throw new Error("Ticket ID is required.");
       }
 
-      const ticket = await TicketService.update(ticketId, req.body);
+      const ticket = await TicketService.update(ticketId, req.userId!, req.body);
 
       return res.json(ticket);
     } catch (error) {
@@ -75,7 +75,7 @@ class TicketController {
         throw new Error("Ticket ID is required.");
       }
 
-      const result = await TicketService.delete(ticketId);
+      const result = await TicketService.delete(ticketId, req.userId!);
 
       return res.json(result);
     } catch (error) {

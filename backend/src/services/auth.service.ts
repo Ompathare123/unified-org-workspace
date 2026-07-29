@@ -2,6 +2,7 @@ import { Role } from "@prisma/client";
 import prisma from "../config/prisma";
 import { hashPassword, comparePassword } from "../utils/password";
 import { generateToken } from "../utils/jwt";
+import AuditService from "./audit.service";
 
 interface RegisterInput {
   fullName: string;
@@ -125,6 +126,19 @@ class AuthService {
 
     const token = generateToken(user.id);
     const { passwordHash, ...safeUser } = user;
+
+    // ── Audit: User Login ──────────────────────────────────────────────────
+    // Log against the first membership org (same pattern as other services).
+    if (memberships.length > 0) {
+      void AuditService.log({
+        organizationId: memberships[0].organizationId,
+        userId: user.id,
+        action: "USER_LOGIN",
+        entityType: "User",
+        entityId: user.id,
+        metadata: { email: user.email },
+      });
+    }
 
     return {
       message: "Login successful.",
