@@ -15,6 +15,7 @@ import auditRoutes from "./routes/audit.routes";
 import connectionRoutes from "./routes/connection.routes";
 import shareRoutes from "./routes/share.routes";
 import notificationRoutes from "./routes/notification.routes";
+import digestRoutes from "./routes/digest.routes";
 import ReviewController from "./controllers/review.controller";
 import VersionController from "./controllers/version.controller";
 import AttachmentController from "./controllers/attachment.controller";
@@ -78,6 +79,9 @@ app.use("/api/share", shareRoutes);
 
 // ── Notifications ──────────────────────────────────────────────────────────
 app.use("/api/notifications", notificationRoutes);
+
+// ── Progress Digest ────────────────────────────────────────────────────────
+app.use("/api/digest", digestRoutes);
 
 // ── Comments (legacy import workaround) ────────────────────────────────────
 const commentRouter =
