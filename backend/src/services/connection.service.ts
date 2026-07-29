@@ -1,5 +1,6 @@
 import prisma from "../config/prisma";
-import { ConnectionStatus } from "@prisma/client";
+import { ConnectionStatus, Role } from "@prisma/client";
+import NotificationService from "./notification.service";
 
 class ConnectionService {
   private async getUserOrgId(userId: string): Promise<string> {
@@ -87,10 +88,29 @@ class ConnectionService {
       throw new Error(`Cannot accept connection with status ${connection.status}`);
     }
 
-    return prisma.organizationConnection.update({
+    const updated = await prisma.organizationConnection.update({
       where: { id: connectionId },
       data: { status: ConnectionStatus.ACCEPTED },
     });
+
+    // ── Notification: Connection Accepted ───────────────────────────────────
+    const admins = await prisma.membership.findMany({
+      where: { organizationId: connection.requesterOrgId, role: Role.ORG_ADMIN },
+      select: { userId: true },
+    });
+
+    for (const admin of admins) {
+      void NotificationService.send({
+        organizationId: connection.requesterOrgId,
+        userId: admin.userId,
+        type: "SYSTEM",
+        title: "Connection Accepted",
+        message: `Your connection request has been accepted.`,
+        metadata: { connectionId },
+      });
+    }
+
+    return updated;
   }
 
   // 3. POST /api/connections/:id/reject

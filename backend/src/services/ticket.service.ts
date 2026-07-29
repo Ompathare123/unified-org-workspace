@@ -2,6 +2,7 @@ import prisma from "../config/prisma";
 import { TicketStatus } from "@prisma/client";
 import { CreateTicketInput, UpdateTicketInput } from "../types/ticket";
 import AuditService from "./audit.service";
+import NotificationService from "./notification.service";
 
 class TicketService {
   async create(userId: string, data: CreateTicketInput) {
@@ -80,7 +81,7 @@ class TicketService {
     // Fetch org for audit log before updating.
     const existing = await prisma.ticket.findUnique({
       where: { id: ticketId },
-      select: { organizationId: true },
+      select: { organizationId: true, assignedToId: true },
     });
 
     if (!existing) {
@@ -93,6 +94,7 @@ class TicketService {
         title: data.title,
         description: data.description,
         status: data.status as TicketStatus,
+        ...(data.assignedToId !== undefined && { assignedToId: data.assignedToId }),
       },
     });
 
@@ -105,6 +107,17 @@ class TicketService {
       entityId: ticketId,
       metadata: { updatedFields: Object.keys(data).filter((k) => data[k as keyof UpdateTicketInput] !== undefined) },
     });
+
+    if (data.assignedToId && data.assignedToId !== existing.assignedToId) {
+      void NotificationService.send({
+        organizationId: existing.organizationId,
+        userId: data.assignedToId,
+        type: "SYSTEM",
+        title: "Ticket Assigned",
+        message: `You have been assigned ticket: ${ticket.title}`,
+        metadata: { ticketId: ticket.id },
+      });
+    }
 
     return ticket;
   }

@@ -12,4 +12,5 @@ export interface UpdateTicketInput {
     | "ON_HOLD"
     | "RESOLVED"
     | "CLOSED";
+  assignedToId?: string;
 }

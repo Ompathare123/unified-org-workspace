@@ -2,6 +2,7 @@ import prisma from "../config/prisma";
 import { CreateShareInput } from "../types/share";
 import { ConnectionStatus, SharedItemType } from "@prisma/client";
 import AuditService from "./audit.service";
+import NotificationService from "./notification.service";
 
 class ShareService {
   private async getUserOrgId(userId: string): Promise<string> {
@@ -99,6 +100,16 @@ class ShareService {
       entityType: "SharedItem",
       entityId: share.id,
       metadata: { type: data.type, itemId: data.itemId, sharedWithUserId: data.sharedWithUserId },
+    });
+
+    // ── Notification: Item Shared ───────────────────────────────────────────
+    void NotificationService.send({
+      organizationId: targetOrgId,
+      userId: data.sharedWithUserId,
+      type: "SHARED_ITEM",
+      title: "Item Shared With You",
+      message: `An external organization has shared a ${data.type} with you.`,
+      metadata: { shareId: share.id, type: data.type, itemId: data.itemId },
     });
 
     return share;

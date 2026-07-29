@@ -14,6 +14,7 @@ import attachmentRoutes from "./routes/attachment.routes";
 import auditRoutes from "./routes/audit.routes";
 import connectionRoutes from "./routes/connection.routes";
 import shareRoutes from "./routes/share.routes";
+import notificationRoutes from "./routes/notification.routes";
 import ReviewController from "./controllers/review.controller";
 import VersionController from "./controllers/version.controller";
 import AttachmentController from "./controllers/attachment.controller";
@@ -74,6 +75,9 @@ app.use("/api/audit-logs", auditRoutes);
 // ── Cross-Org Connections & Sharing ────────────────────────────────────────
 app.use("/api/connections", connectionRoutes);
 app.use("/api/share", shareRoutes);
+
+// ── Notifications ──────────────────────────────────────────────────────────
+app.use("/api/notifications", notificationRoutes);
 
 // ── Comments (legacy import workaround) ────────────────────────────────────
 const commentRouter =

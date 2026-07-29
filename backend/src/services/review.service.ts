@@ -2,6 +2,7 @@ import { PRStatus, ReviewDecision } from "@prisma/client";
 import prisma from "../config/prisma";
 import { CreateReviewInput, UpdateReviewInput } from "../types/review";
 import AuditService from "./audit.service";
+import NotificationService from "./notification.service";
 
 class ReviewService {
   // ─────────────────────────────────────────────────────────────────────────
@@ -11,7 +12,7 @@ class ReviewService {
   private async syncPRStatus(pullRequestId: string): Promise<void> {
     const pr = await prisma.pullRequest.findUnique({
       where: { id: pullRequestId },
-      select: { requiredApprovals: true, status: true },
+      select: { requiredApprovals: true, status: true, authorId: true, organizationId: true, title: true },
     });
 
     if (!pr) return;
@@ -42,6 +43,26 @@ class ReviewService {
         where: { id: pullRequestId },
         data: { status: newStatus },
       });
+
+      if (newStatus === PRStatus.APPROVED) {
+        void NotificationService.send({
+          organizationId: pr.organizationId,
+          userId: pr.authorId,
+          type: "SYSTEM",
+          title: "PR Approved",
+          message: `Your PR has been approved: ${pr.title}`,
+          metadata: { pullRequestId },
+        });
+      } else if (newStatus === PRStatus.REJECTED) {
+        void NotificationService.send({
+          organizationId: pr.organizationId,
+          userId: pr.authorId,
+          type: "SYSTEM",
+          title: "PR Changes Requested",
+          message: `Changes requested on your PR: ${pr.title}`,
+          metadata: { pullRequestId },
+        });
+      }
     }
   }
 
@@ -104,6 +125,16 @@ class ReviewService {
       entityType: "PRReview",
       entityId: review.id,
       metadata: { decision: data.decision },
+    });
+
+    // ── Notification: PR Assigned (Review Requested) ──────────────────────
+    void NotificationService.send({
+      organizationId: pr.organizationId,
+      userId: reviewerId,
+      type: "REVIEW_REQUEST",
+      title: "Review Requested",
+      message: `You have been requested to review a PR.`,
+      metadata: { pullRequestId: prId },
     });
 
     return review;
