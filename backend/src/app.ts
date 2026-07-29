@@ -5,6 +5,10 @@ import cookieParser = require("cookie-parser");
 import "./config/env";
 
 import authRoutes from "./routes/auth.routes";
+import ticketRoutes from "./routes/ticket.routes";
+import commentRoutes from "./routes/comment.routes";
+import prRoutes from "./routes/pr.routes";
+import type { Router } from "express";
 
 const app = express();
 
@@ -20,5 +24,12 @@ app.get("/", (_, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/tickets", ticketRoutes);
+app.use("/api/prs", prRoutes);
+const commentRouter =
+  ((commentRoutes as unknown as { default?: Router }).default ??
+    commentRoutes) as Router;
+
+app.use("/api", commentRouter);
 
 export default app;
