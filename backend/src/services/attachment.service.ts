@@ -1,5 +1,6 @@
 import prisma from "../config/prisma";
 import { CreateAttachmentInput } from "../types/attachment";
+import AuditService from "./audit.service";
 
 class AttachmentService {
   // ─────────────────────────────────────────────────────────────────────────
@@ -56,7 +57,7 @@ class AttachmentService {
     const ticket = await this.requireTicket(ticketId);
     await this.requireOrgMembership(userId, ticket.organizationId);
 
-    return prisma.ticketAttachment.create({
+    const attachment = await prisma.ticketAttachment.create({
       data: {
         ticketId,
         uploadedById: userId,
@@ -76,6 +77,18 @@ class AttachmentService {
         },
       },
     });
+
+    // ── Audit: Attachment Uploaded ─────────────────────────────────────────
+    void AuditService.log({
+      organizationId: ticket.organizationId,
+      userId,
+      action: "ATTACHMENT_UPLOADED",
+      entityType: "TicketAttachment",
+      entityId: attachment.id,
+      metadata: { fileName: data.fileName, fileSize: data.fileSize },
+    });
+
+    return attachment;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -154,6 +167,7 @@ class AttachmentService {
       where: { id: attachmentId },
       select: {
         id: true,
+        fileName: true,
         ticket: {
           select: { organizationId: true },
         },
@@ -168,6 +182,16 @@ class AttachmentService {
 
     await prisma.ticketAttachment.delete({
       where: { id: attachmentId },
+    });
+
+    // ── Audit: Attachment Deleted ─────────────────────────────────────────
+    void AuditService.log({
+      organizationId: attachment.ticket.organizationId,
+      userId,
+      action: "ATTACHMENT_DELETED",
+      entityType: "TicketAttachment",
+      entityId: attachmentId,
+      metadata: { fileName: attachment.fileName },
     });
 
     return { message: "Attachment deleted successfully." };

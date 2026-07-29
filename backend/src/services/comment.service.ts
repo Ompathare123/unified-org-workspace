@@ -3,6 +3,7 @@ import {
   CreateCommentInput,
   UpdateCommentInput,
 } from "../types/comment";
+import AuditService from "./audit.service";
 
 class CommentService {
   async create(
@@ -20,7 +21,7 @@ class CommentService {
       throw new Error("Ticket not found.");
     }
 
-    return prisma.ticketComment.create({
+    const comment = await prisma.ticketComment.create({
       data: {
         ticketId,
         authorId: userId,
@@ -30,6 +31,18 @@ class CommentService {
         author: true,
       },
     });
+
+    // ── Audit: Comment Added ──────────────────────────────────────────────
+    void AuditService.log({
+      organizationId: ticket.organizationId,
+      userId,
+      action: "COMMENT_ADDED",
+      entityType: "TicketComment",
+      entityId: comment.id,
+      metadata: { ticketId },
+    });
+
+    return comment;
   }
 
   async getAll(ticketId: string) {

@@ -1,20 +1,13 @@
 import { PRStatus, ReviewDecision } from "@prisma/client";
 import prisma from "../config/prisma";
 import { CreateReviewInput, UpdateReviewInput } from "../types/review";
+import AuditService from "./audit.service";
 
 class ReviewService {
   // ─────────────────────────────────────────────────────────────────────────
   // Helpers
   // ─────────────────────────────────────────────────────────────────────────
 
-  /**
-   * After every review insert or update, recompute the PR's aggregate status.
-   *
-   * Rules (from assignment):
-   *  - Any CHANGES_REQUESTED  → PR becomes REJECTED immediately.
-   *  - approvedCount >= requiredApprovals (and no CHANGES_REQUESTED) → PR becomes APPROVED.
-   *  - Otherwise leave PR status unchanged.
-   */
   private async syncPRStatus(pullRequestId: string): Promise<void> {
     const pr = await prisma.pullRequest.findUnique({
       where: { id: pullRequestId },
@@ -60,17 +53,15 @@ class ReviewService {
     reviewerId: string,
     data: CreateReviewInput
   ) {
-    // 1. Verify PR exists.
     const pr = await prisma.pullRequest.findUnique({
       where: { id: prId },
-      select: { id: true, authorId: true },
+      select: { id: true, authorId: true, organizationId: true },
     });
 
     if (!pr) {
       throw new Error("Pull request not found.");
     }
 
-    // 2. Prevent duplicate reviews from the same reviewer on the same PR.
     const existing = await prisma.pRReview.findFirst({
       where: {
         pullRequestId: prId,
@@ -84,7 +75,6 @@ class ReviewService {
       );
     }
 
-    // 3. Create the review.
     const review = await prisma.pRReview.create({
       data: {
         pullRequestId: prId,
@@ -104,8 +94,17 @@ class ReviewService {
       },
     });
 
-    // 4. Sync PR status based on aggregate review decisions.
     await this.syncPRStatus(prId);
+
+    // ── Audit: Review Submitted ──────────────────────────────────────────
+    void AuditService.log({
+      organizationId: pr.organizationId,
+      userId: reviewerId,
+      action: "REVIEW_SUBMITTED",
+      entityType: "PRReview",
+      entityId: review.id,
+      metadata: { decision: data.decision },
+    });
 
     return review;
   }
@@ -142,11 +141,10 @@ class ReviewService {
   // ─────────────────────────────────────────────────────────────────────────
   // PUT /api/reviews/:reviewId
   // ─────────────────────────────────────────────────────────────────────────
-  async update(reviewId: string, data: UpdateReviewInput) {
-    // Verify review exists and grab pullRequestId for status sync.
+  async update(reviewId: string, userId: string, data: UpdateReviewInput) {
     const existing = await prisma.pRReview.findUnique({
       where: { id: reviewId },
-      select: { id: true, pullRequestId: true },
+      select: { id: true, pullRequestId: true, pullRequest: { select: { organizationId: true } } },
     });
 
     if (!existing) {
@@ -171,8 +169,17 @@ class ReviewService {
       },
     });
 
-    // Re-sync PR status after update.
     await this.syncPRStatus(existing.pullRequestId);
+
+    // ── Audit: Review Updated ──────────────────────────────────────────
+    void AuditService.log({
+      organizationId: existing.pullRequest.organizationId,
+      userId,
+      action: "REVIEW_UPDATED",
+      entityType: "PRReview",
+      entityId: reviewId,
+      metadata: { updatedFields: Object.keys(data).filter((k) => data[k as keyof UpdateReviewInput] !== undefined) },
+    });
 
     return review;
   }
@@ -180,10 +187,10 @@ class ReviewService {
   // ─────────────────────────────────────────────────────────────────────────
   // DELETE /api/reviews/:reviewId
   // ─────────────────────────────────────────────────────────────────────────
-  async delete(reviewId: string) {
+  async delete(reviewId: string, userId: string) {
     const existing = await prisma.pRReview.findUnique({
       where: { id: reviewId },
-      select: { id: true, pullRequestId: true },
+      select: { id: true, pullRequestId: true, pullRequest: { select: { organizationId: true } } },
     });
 
     if (!existing) {
@@ -194,8 +201,16 @@ class ReviewService {
       where: { id: reviewId },
     });
 
-    // Re-sync PR status after deletion (a deletion may un-reject the PR).
     await this.syncPRStatus(existing.pullRequestId);
+
+    // ── Audit: Review Deleted ──────────────────────────────────────────
+    void AuditService.log({
+      organizationId: existing.pullRequest.organizationId,
+      userId,
+      action: "REVIEW_DELETED",
+      entityType: "PRReview",
+      entityId: reviewId,
+    });
 
     return { message: "Review deleted successfully." };
   }

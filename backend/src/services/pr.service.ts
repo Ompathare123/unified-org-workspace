@@ -2,6 +2,7 @@ import { PRStatus } from "@prisma/client";
 import prisma from "../config/prisma";
 import { CreatePRInput, UpdatePRInput } from "../types/pr";
 import VersionService from "./version.service";
+import AuditService from "./audit.service";
 
 class PRService {
   // ────────────────────────────────────────────────────────────────
@@ -42,6 +43,16 @@ class PRService {
         reviews: true,
         versions: true,
       },
+    });
+
+    // ── Audit: PR Created ────────────────────────────────────────────────
+    void AuditService.log({
+      organizationId: membership.organizationId,
+      userId,
+      action: "PR_CREATED",
+      entityType: "PullRequest",
+      entityId: pr.id,
+      metadata: { title: pr.title },
     });
 
     return {
@@ -159,6 +170,15 @@ class PRService {
   //  snapshot is created automatically. No second API call needed.
   // ────────────────────────────────────────────────────────────────
   async update(prId: string, userId: string, data: UpdatePRInput) {
+    const existing = await prisma.pullRequest.findUnique({
+      where: { id: prId },
+      select: { organizationId: true },
+    });
+    
+    if (!existing) {
+      throw new Error("PR not found.");
+    }
+
     const pr = await prisma.pullRequest.update({
       where: { id: prId },
       data: {
@@ -182,6 +202,16 @@ class PRService {
       },
     });
 
+    // ── Audit: PR Updated ────────────────────────────────────────────────
+    void AuditService.log({
+      organizationId: pr.organizationId,
+      userId,
+      action: "PR_UPDATED",
+      entityType: "PullRequest",
+      entityId: pr.id,
+      metadata: { updatedFields: Object.keys(data).filter((k) => data[k as keyof UpdatePRInput] !== undefined) },
+    });
+
     // ── Auto-versioning ──────────────────────────────────────────
     // Snapshot the updated PR state into a PRVersion record.
     // versionNumber is sequential and computed inside VersionService.
@@ -198,11 +228,30 @@ class PRService {
   }
 
   // ────────────────────────────────────────────────────────────────
-  // DELETE /api/prs/:id  — unchanged
+  // DELETE /api/prs/:id
   // ────────────────────────────────────────────────────────────────
-  async delete(prId: string) {
+  async delete(prId: string, userId: string) {
+    const existing = await prisma.pullRequest.findUnique({
+      where: { id: prId },
+      select: { organizationId: true, title: true },
+    });
+
+    if (!existing) {
+      throw new Error("PR not found.");
+    }
+
     await prisma.pullRequest.delete({
       where: { id: prId },
+    });
+
+    // ── Audit: PR Deleted ────────────────────────────────────────────────
+    void AuditService.log({
+      organizationId: existing.organizationId,
+      userId,
+      action: "PR_DELETED",
+      entityType: "PullRequest",
+      entityId: prId,
+      metadata: { title: existing.title },
     });
 
     return {

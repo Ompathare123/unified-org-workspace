@@ -54,7 +54,7 @@ class PRController {
 
   async delete(req: AuthRequest, res: Response): Promise<Response> {
     try {
-      const result = await PRService.delete(req.params.id as string);
+      const result = await PRService.delete(req.params.id as string, req.userId!);
 
       return res.json(result);
     } catch (error) {

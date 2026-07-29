@@ -11,6 +11,7 @@ import prRoutes from "./routes/pr.routes";
 import reviewRoutes from "./routes/review.routes";
 import versionRoutes from "./routes/version.routes";
 import attachmentRoutes from "./routes/attachment.routes";
+import auditRoutes from "./routes/audit.routes";
 import ReviewController from "./controllers/review.controller";
 import VersionController from "./controllers/version.controller";
 import AttachmentController from "./controllers/attachment.controller";
@@ -61,6 +62,10 @@ app.use("/api/tickets/:ticketId/attachments", attachmentRoutes);
 // DELETE /api/attachments/:attachmentId
 app.get("/api/attachments/:attachmentId", authenticate, AttachmentController.getById);
 app.delete("/api/attachments/:attachmentId", authenticate, AttachmentController.delete);
+
+// ── Audit Logs ─────────────────────────────────────────────────────────────
+// GET /api/audit-logs
+app.use("/api/audit-logs", auditRoutes);
 
 // ── Comments (legacy import workaround) ────────────────────────────────────
 const commentRouter =

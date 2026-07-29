@@ -1,5 +1,6 @@
 import prisma from "../config/prisma";
 import { CreateVersionInput } from "../types/version";
+import AuditService from "./audit.service";
 
 class VersionService {
   // ─────────────────────────────────────────────────────────────────────────
@@ -24,9 +25,18 @@ class VersionService {
     createdById: string,
     data: CreateVersionInput
   ) {
+    const pr = await prisma.pullRequest.findUnique({
+      where: { id: pullRequestId },
+      select: { id: true, organizationId: true },
+    });
+
+    if (!pr) {
+      throw new Error("Pull request not found.");
+    }
+
     const versionNumber = await this.nextVersionNumber(pullRequestId);
 
-    return prisma.pRVersion.create({
+    const version = await prisma.pRVersion.create({
       data: {
         pullRequestId,
         createdById,
@@ -46,6 +56,18 @@ class VersionService {
         },
       },
     });
+
+    // ── Audit: Version Created ──────────────────────────────────────────
+    void AuditService.log({
+      organizationId: pr.organizationId,
+      userId: createdById,
+      action: "VERSION_CREATED",
+      entityType: "PRVersion",
+      entityId: version.id,
+      metadata: { versionNumber, title: data.title },
+    });
+
+    return version;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -96,8 +118,8 @@ class VersionService {
             fullName: true,
             email: true,
             avatar: true,
+            },
           },
-        },
       },
       orderBy: { versionNumber: "asc" },
     });

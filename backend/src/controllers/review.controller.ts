@@ -39,6 +39,7 @@ class ReviewController {
     try {
       const review = await ReviewService.update(
         req.params.reviewId as string,
+        req.userId!,
         req.body as UpdateReviewInput
       );
 
@@ -53,7 +54,7 @@ class ReviewController {
   // DELETE /api/reviews/:reviewId
   async delete(req: AuthRequest, res: Response): Promise<Response> {
     try {
-      const result = await ReviewService.delete(req.params.reviewId as string);
+      const result = await ReviewService.delete(req.params.reviewId as string, req.userId!);
 
       return res.json(result);
     } catch (error) {
