@@ -9,7 +9,9 @@ import ticketRoutes from "./routes/ticket.routes";
 import commentRoutes from "./routes/comment.routes";
 import prRoutes from "./routes/pr.routes";
 import reviewRoutes from "./routes/review.routes";
+import versionRoutes from "./routes/version.routes";
 import ReviewController from "./controllers/review.controller";
+import VersionController from "./controllers/version.controller";
 import { authenticate } from "./middleware/auth.middleware";
 import type { Router } from "express";
 
@@ -38,6 +40,13 @@ app.use("/api/prs/:prId/reviews", reviewRoutes);
 // DELETE /api/reviews/:reviewId  — delete a review
 app.put("/api/reviews/:reviewId", authenticate, ReviewController.update);
 app.delete("/api/reviews/:reviewId", authenticate, ReviewController.delete);
+
+// PR-scoped version routes: POST /api/prs/:prId/versions  &  GET /api/prs/:prId/versions
+app.use("/api/prs/:prId/versions", versionRoutes);
+
+// Standalone version route (by versionId, not prId)
+// GET /api/versions/:versionId  — get single version with PR and org
+app.get("/api/versions/:versionId", authenticate, VersionController.getById);
 
 const commentRouter =
   ((commentRoutes as unknown as { default?: Router }).default ??

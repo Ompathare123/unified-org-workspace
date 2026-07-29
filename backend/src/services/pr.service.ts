@@ -1,6 +1,7 @@
 import { PRStatus } from "@prisma/client";
 import prisma from "../config/prisma";
 import { CreatePRInput, UpdatePRInput } from "../types/pr";
+import VersionService from "./version.service";
 
 class PRService {
   // ────────────────────────────────────────────────────────────────
@@ -154,8 +155,10 @@ class PRService {
   // ────────────────────────────────────────────────────────────────
   // PUT /api/prs/:id
   //  Allows: title, description, sourceBranch, targetBranch, status
+  //  AUTO-VERSIONS: After every successful update, a new PRVersion
+  //  snapshot is created automatically. No second API call needed.
   // ────────────────────────────────────────────────────────────────
-  async update(prId: string, data: UpdatePRInput) {
+  async update(prId: string, userId: string, data: UpdatePRInput) {
     const pr = await prisma.pullRequest.update({
       where: { id: prId },
       data: {
@@ -177,6 +180,15 @@ class PRService {
         reviews: true,
         versions: true,
       },
+    });
+
+    // ── Auto-versioning ──────────────────────────────────────────
+    // Snapshot the updated PR state into a PRVersion record.
+    // versionNumber is sequential and computed inside VersionService.
+    await VersionService.createRecord(prId, userId, {
+      title: pr.title,
+      description: pr.description,
+      diffContent: `Updated to sourceBranch: ${pr.sourceBranch}, targetBranch: ${pr.targetBranch}, status: ${pr.status}`,
     });
 
     return {

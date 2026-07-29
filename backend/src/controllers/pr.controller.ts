@@ -42,7 +42,7 @@ class PRController {
 
   async update(req: AuthRequest, res: Response): Promise<Response> {
     try {
-      const result = await PRService.update(req.params.id as string, req.body as UpdatePRInput);
+      const result = await PRService.update(req.params.id as string, req.userId!, req.body as UpdatePRInput);
 
       return res.json(result);
     } catch (error) {
