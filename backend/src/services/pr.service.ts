@@ -3,11 +3,16 @@ import prisma from "../config/prisma";
 import { CreatePRInput, UpdatePRInput } from "../types/pr";
 
 class PRService {
+  // ────────────────────────────────────────────────────────────────
+  // POST /api/prs
+  //  - authorId  = authenticated user (passed in)
+  //  - orgId     = user's first membership org (Phase 2 scope)
+  //  - status    = DRAFT  (initial state per schema enum)
+  //  - persists sourceBranch & targetBranch
+  // ────────────────────────────────────────────────────────────────
   async create(userId: string, data: CreatePRInput) {
     const membership = await prisma.membership.findFirst({
-      where: {
-        userId,
-      },
+      where: { userId },
     });
 
     if (!membership) {
@@ -18,12 +23,23 @@ class PRService {
       data: {
         title: data.title,
         description: data.description,
+        sourceBranch: data.sourceBranch,
+        targetBranch: data.targetBranch,
         organizationId: membership.organizationId,
         authorId: userId,
         status: PRStatus.DRAFT,
       },
       include: {
-        author: true,
+        author: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            avatar: true,
+          },
+        },
+        reviews: true,
+        versions: true,
       },
     });
 
@@ -33,11 +49,13 @@ class PRService {
     };
   }
 
+  // ────────────────────────────────────────────────────────────────
+  // GET /api/prs
+  //  Returns: sourceBranch, targetBranch, createdBy, reviews, versions
+  // ────────────────────────────────────────────────────────────────
   async getAll(userId: string) {
     const membership = await prisma.membership.findFirst({
-      where: {
-        userId,
-      },
+      where: { userId },
     });
 
     if (!membership) {
@@ -49,7 +67,16 @@ class PRService {
         organizationId: membership.organizationId,
       },
       include: {
-        author: true,
+        author: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            avatar: true,
+          },
+        },
+        reviews: true,
+        versions: true,
       },
       orderBy: {
         createdAt: "desc",
@@ -62,15 +89,55 @@ class PRService {
     }));
   }
 
+  // ────────────────────────────────────────────────────────────────
+  // GET /api/prs/:id
+  //  Returns: createdBy, organization, reviews, versions,
+  //           sourceBranch, targetBranch
+  // ────────────────────────────────────────────────────────────────
   async getById(prId: string) {
     const pr = await prisma.pullRequest.findUnique({
-      where: {
-        id: prId,
-      },
+      where: { id: prId },
       include: {
-        author: true,
-        reviews: true,
-        versions: true,
+        author: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            avatar: true,
+          },
+        },
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        reviews: {
+          include: {
+            reviewer: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                avatar: true,
+              },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        },
+        versions: {
+          include: {
+            createdBy: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: { versionNumber: "asc" },
+        },
       },
     });
 
@@ -84,18 +151,31 @@ class PRService {
     };
   }
 
+  // ────────────────────────────────────────────────────────────────
+  // PUT /api/prs/:id
+  //  Allows: title, description, sourceBranch, targetBranch, status
+  // ────────────────────────────────────────────────────────────────
   async update(prId: string, data: UpdatePRInput) {
     const pr = await prisma.pullRequest.update({
-      where: {
-        id: prId,
-      },
+      where: { id: prId },
       data: {
-        title: data.title,
-        description: data.description,
-        status: data.status,
+        ...(data.title !== undefined && { title: data.title }),
+        ...(data.description !== undefined && { description: data.description }),
+        ...(data.sourceBranch !== undefined && { sourceBranch: data.sourceBranch }),
+        ...(data.targetBranch !== undefined && { targetBranch: data.targetBranch }),
+        ...(data.status !== undefined && { status: data.status }),
       },
       include: {
-        author: true,
+        author: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            avatar: true,
+          },
+        },
+        reviews: true,
+        versions: true,
       },
     });
 
@@ -105,11 +185,12 @@ class PRService {
     };
   }
 
+  // ────────────────────────────────────────────────────────────────
+  // DELETE /api/prs/:id  — unchanged
+  // ────────────────────────────────────────────────────────────────
   async delete(prId: string) {
     await prisma.pullRequest.delete({
-      where: {
-        id: prId,
-      },
+      where: { id: prId },
     });
 
     return {

@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import PRService from "../services/pr.service";
 import { AuthRequest } from "../middleware/auth.middleware";
 import { CreatePRInput, UpdatePRInput } from "../types/pr";
@@ -28,9 +28,9 @@ class PRController {
     }
   }
 
-  async getById(req: AuthRequest & Request<{ id: string }>, res: Response): Promise<Response> {
+  async getById(req: AuthRequest, res: Response): Promise<Response> {
     try {
-      const pr = await PRService.getById(req.params.id);
+      const pr = await PRService.getById(req.params.id as string);
 
       return res.json(pr);
     } catch (error) {
@@ -40,9 +40,9 @@ class PRController {
     }
   }
 
-  async update(req: AuthRequest & Request<{ id: string }>, res: Response): Promise<Response> {
+  async update(req: AuthRequest, res: Response): Promise<Response> {
     try {
-      const result = await PRService.update(req.params.id, req.body as UpdatePRInput);
+      const result = await PRService.update(req.params.id as string, req.body as UpdatePRInput);
 
       return res.json(result);
     } catch (error) {
@@ -52,9 +52,9 @@ class PRController {
     }
   }
 
-  async delete(req: AuthRequest & Request<{ id: string }>, res: Response): Promise<Response> {
+  async delete(req: AuthRequest, res: Response): Promise<Response> {
     try {
-      const result = await PRService.delete(req.params.id);
+      const result = await PRService.delete(req.params.id as string);
 
       return res.json(result);
     } catch (error) {
