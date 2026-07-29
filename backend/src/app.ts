@@ -16,6 +16,8 @@ import ReviewController from "./controllers/review.controller";
 import VersionController from "./controllers/version.controller";
 import AttachmentController from "./controllers/attachment.controller";
 import { authenticate } from "./middleware/auth.middleware";
+import { requireRole } from "./middleware/rbac.middleware";
+import { Role } from "@prisma/client";
 import type { Router } from "express";
 
 const app = express();
@@ -42,8 +44,8 @@ app.use("/api/prs/:prId/reviews", reviewRoutes);
 
 // PUT    /api/reviews/:reviewId
 // DELETE /api/reviews/:reviewId
-app.put("/api/reviews/:reviewId", authenticate, ReviewController.update);
-app.delete("/api/reviews/:reviewId", authenticate, ReviewController.delete);
+app.put("/api/reviews/:reviewId", authenticate, requireRole(Role.ORG_ADMIN, Role.REVIEWER), ReviewController.update);
+app.delete("/api/reviews/:reviewId", authenticate, requireRole(Role.ORG_ADMIN, Role.REVIEWER), ReviewController.delete);
 
 // ── Versions ───────────────────────────────────────────────────────────────
 // POST /api/prs/:prId/versions
@@ -61,7 +63,7 @@ app.use("/api/tickets/:ticketId/attachments", attachmentRoutes);
 // GET    /api/attachments/:attachmentId
 // DELETE /api/attachments/:attachmentId
 app.get("/api/attachments/:attachmentId", authenticate, AttachmentController.getById);
-app.delete("/api/attachments/:attachmentId", authenticate, AttachmentController.delete);
+app.delete("/api/attachments/:attachmentId", authenticate, requireRole(Role.ORG_ADMIN, Role.SUPPORT_AGENT), AttachmentController.delete);
 
 // ── Audit Logs ─────────────────────────────────────────────────────────────
 // GET /api/audit-logs
