@@ -10,8 +10,10 @@ import commentRoutes from "./routes/comment.routes";
 import prRoutes from "./routes/pr.routes";
 import reviewRoutes from "./routes/review.routes";
 import versionRoutes from "./routes/version.routes";
+import attachmentRoutes from "./routes/attachment.routes";
 import ReviewController from "./controllers/review.controller";
 import VersionController from "./controllers/version.controller";
+import AttachmentController from "./controllers/attachment.controller";
 import { authenticate } from "./middleware/auth.middleware";
 import type { Router } from "express";
 
@@ -32,22 +34,35 @@ app.use("/api/auth", authRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/prs", prRoutes);
 
-// PR-scoped review routes: POST /api/prs/:prId/reviews  &  GET /api/prs/:prId/reviews
+// ── Reviews ────────────────────────────────────────────────────────────────
+// POST   /api/prs/:prId/reviews
+// GET    /api/prs/:prId/reviews
 app.use("/api/prs/:prId/reviews", reviewRoutes);
 
-// Standalone review mutation routes (no prId in path)
-// PUT    /api/reviews/:reviewId  — update a review
-// DELETE /api/reviews/:reviewId  — delete a review
+// PUT    /api/reviews/:reviewId
+// DELETE /api/reviews/:reviewId
 app.put("/api/reviews/:reviewId", authenticate, ReviewController.update);
 app.delete("/api/reviews/:reviewId", authenticate, ReviewController.delete);
 
-// PR-scoped version routes: POST /api/prs/:prId/versions  &  GET /api/prs/:prId/versions
+// ── Versions ───────────────────────────────────────────────────────────────
+// POST /api/prs/:prId/versions
+// GET  /api/prs/:prId/versions
 app.use("/api/prs/:prId/versions", versionRoutes);
 
-// Standalone version route (by versionId, not prId)
-// GET /api/versions/:versionId  — get single version with PR and org
+// GET  /api/versions/:versionId
 app.get("/api/versions/:versionId", authenticate, VersionController.getById);
 
+// ── Attachments ────────────────────────────────────────────────────────────
+// POST /api/tickets/:ticketId/attachments
+// GET  /api/tickets/:ticketId/attachments
+app.use("/api/tickets/:ticketId/attachments", attachmentRoutes);
+
+// GET    /api/attachments/:attachmentId
+// DELETE /api/attachments/:attachmentId
+app.get("/api/attachments/:attachmentId", authenticate, AttachmentController.getById);
+app.delete("/api/attachments/:attachmentId", authenticate, AttachmentController.delete);
+
+// ── Comments (legacy import workaround) ────────────────────────────────────
 const commentRouter =
   ((commentRoutes as unknown as { default?: Router }).default ??
     commentRoutes) as Router;
