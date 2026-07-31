@@ -3,7 +3,13 @@ import { ConnectionStatus, Role } from "@prisma/client";
 import NotificationService from "./notification.service";
 
 class ConnectionService {
-  private async getUserOrgId(userId: string): Promise<string> {
+  private async getUserOrgId(userId: string, preferredOrgId?: string): Promise<string> {
+    if (preferredOrgId) {
+      const mem = await prisma.membership.findUnique({
+        where: { userId_organizationId: { userId, organizationId: preferredOrgId } },
+      });
+      if (mem) return mem.organizationId;
+    }
     const membership = await prisma.membership.findFirst({
       where: { userId },
     });
@@ -12,6 +18,7 @@ class ConnectionService {
     }
     return membership.organizationId;
   }
+
 
   // 1. POST /api/connections/request
   async requestConnection(userId: string, partnerOrgId: string) {
@@ -157,6 +164,55 @@ class ConnectionService {
       where: { id: connectionId },
     });
   }
+
+  // 5. GET /api/connections
+  async getConnections(userId: string) {
+    const orgId = await this.getUserOrgId(userId);
+
+    return prisma.organizationConnection.findMany({
+      where: {
+        OR: [
+          { requesterOrgId: orgId },
+          { partnerOrgId: orgId },
+        ],
+      },
+      include: {
+        requesterOrg: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        partnerOrg: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  // 6. GET /api/connections/organizations
+  async listOrganizations(userId: string) {
+    const orgId = await this.getUserOrgId(userId);
+
+    return prisma.organization.findMany({
+      where: {
+        id: { not: orgId },
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+      },
+      orderBy: { name: "asc" },
+    });
+  }
 }
 
 export default new ConnectionService();
+

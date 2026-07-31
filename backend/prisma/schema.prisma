@@ -11,6 +11,7 @@ enum Role {
   PLATFORM_ADMIN
   ORG_ADMIN
   SUPPORT_AGENT
+  DEVELOPER
   REVIEWER
   CROSS_ORG_GUEST
 }
@@ -21,6 +22,13 @@ enum TicketStatus {
   ON_HOLD
   RESOLVED
   CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
 
 enum PRStatus {
@@ -56,6 +64,14 @@ enum NotificationType {
   SYSTEM
 }
 
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+  EXPIRED
+}
+
 model Organization {
   id   String @id @default(uuid())
   name String
@@ -67,6 +83,7 @@ model Organization {
   auditLogs     AuditLog[]
   featureFlags  FeatureFlag[]
   notifications Notification[]
+  invitations   Invitation[]
 
   requestedConnections OrganizationConnection[] @relation("RequesterOrg")
   partnerConnections   OrganizationConnection[] @relation("PartnerOrg")
@@ -90,8 +107,10 @@ model User {
 
   createdPRs PullRequest[] @relation("AuthorPullRequests")
   reviews    PRReview[]
+  prComments PRComment[]
 
   comments          TicketComment[]
+  commentAttachments CommentAttachment[]
   uploadedAttachments TicketAttachment[] @relation("UploadedAttachments")
 
   createdPRVersions PRVersion[] @relation("PRVersionCreatedBy")
@@ -100,6 +119,7 @@ model User {
   sharedItems      SharedItem[]   @relation("SharedWithUser")
   sharedByMe       SharedItem[]   @relation("SharedByUser")
   auditLogs        AuditLog[]
+  sentInvitations  Invitation[]   @relation("SentInvitations")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -122,10 +142,11 @@ model Membership {
 }
 
 model Ticket {
-  id          String       @id @default(uuid())
+  id          String         @id @default(uuid())
   title       String
   description String
-  status      TicketStatus @default(OPEN)
+  status      TicketStatus   @default(OPEN)
+  priority    TicketPriority @default(MEDIUM)
 
   organizationId String
   createdById    String
@@ -149,12 +170,37 @@ model TicketComment {
   id String @id @default(uuid())
 
   ticketId String
-  authorId String
+  userId   String
 
-  message String
+  content  String
+  isEdited Boolean @default(false)
+
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+  deletedBy String?
 
   ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  author User   @relation(fields: [authorId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  attachments CommentAttachment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CommentAttachment {
+  id String @id @default(uuid())
+
+  commentId    String
+  uploadedById String
+
+  fileName String
+  fileUrl  String
+  fileSize Int
+  mimeType String
+
+  comment    TicketComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  uploadedBy User          @relation(fields: [uploadedById], references: [id])
 
   createdAt DateTime @default(now())
 }
@@ -208,6 +254,7 @@ model PullRequest {
 
   author      User         @relation("AuthorPullRequests", fields: [authorId], references: [id])
   reviews     PRReview[]
+  comments    PRComment[]
   versions    PRVersion[]
   sharedUsers SharedItem[]
 
@@ -232,6 +279,31 @@ model PRReview {
   reviewer User @relation(fields: [reviewerId], references: [id])
 
   createdAt DateTime @default(now())
+}
+
+model PRComment {
+  id String @id @default(uuid())
+
+  pullRequestId String
+  userId        String
+
+  content  String
+  isEdited Boolean @default(false)
+
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+  deletedBy String?
+
+  parentId String?
+
+  filePath   String?
+  lineNumber Int?
+
+  pullRequest PullRequest @relation(fields: [pullRequestId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model PRVersion {
@@ -334,5 +406,24 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId])
+  @@index([organizationId])
+}
+
+model Invitation {
+  id             String           @id @default(uuid())
+  email          String
+  role           Role
+  organizationId String
+  invitedById    String
+  status         InvitationStatus @default(PENDING)
+  inviteToken    String           @unique
+  expiresAt      DateTime
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy      User             @relation("SentInvitations", fields: [invitedById], references: [id])
+
+  @@index([email])
   @@index([organizationId])
 }

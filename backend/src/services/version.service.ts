@@ -79,11 +79,12 @@ class VersionService {
   async create(
     prId: string,
     userId: string,
+    orgId: string,
     data: CreateVersionInput
   ) {
     // Validate PR exists.
     const pr = await prisma.pullRequest.findUnique({
-      where: { id: prId },
+      where: { id: prId, organizationId: orgId },
       select: { id: true },
     });
 
@@ -99,9 +100,9 @@ class VersionService {
   //  Returns all versions ordered by versionNumber ASC.
   //  Includes creator info and diffContent.
   // ─────────────────────────────────────────────────────────────────────────
-  async getByPR(prId: string) {
+  async getByPR(prId: string, orgId: string) {
     const pr = await prisma.pullRequest.findUnique({
-      where: { id: prId },
+      where: { id: prId, organizationId: orgId },
       select: { id: true },
     });
 
@@ -129,7 +130,7 @@ class VersionService {
   // GET /api/versions/:versionId
   //  Returns one version with creator, pull request, and organization.
   // ─────────────────────────────────────────────────────────────────────────
-  async getById(versionId: string) {
+  async getById(versionId: string, orgId: string) {
     const version = await prisma.pRVersion.findUnique({
       where: { id: versionId },
       include: {

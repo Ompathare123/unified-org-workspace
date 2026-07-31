@@ -1,6 +1,8 @@
 import prisma from "../config/prisma";
 import { CreateAttachmentInput } from "../types/attachment";
 import AuditService from "./audit.service";
+import fs from "fs/promises";
+import path from "path";
 
 class AttachmentService {
   // ─────────────────────────────────────────────────────────────────────────
@@ -168,6 +170,7 @@ class AttachmentService {
       select: {
         id: true,
         fileName: true,
+        fileUrl: true,
         ticket: {
           select: { organizationId: true },
         },
@@ -183,6 +186,16 @@ class AttachmentService {
     await prisma.ticketAttachment.delete({
       where: { id: attachmentId },
     });
+
+    // ── Delete Physical File ──────────────────────────────────────────────
+    if (attachment.fileUrl.startsWith("/uploads/")) {
+      try {
+        const filePath = path.join(__dirname, "../../", attachment.fileUrl.replace(/^\//, ""));
+        await fs.unlink(filePath);
+      } catch (err) {
+        console.error("Failed to delete physical file:", err);
+      }
+    }
 
     // ── Audit: Attachment Deleted ─────────────────────────────────────────
     void AuditService.log({

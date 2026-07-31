@@ -1,11 +1,18 @@
 import prisma from "../config/prisma";
-import { TicketStatus } from "@prisma/client";
+import { TicketStatus, TicketPriority } from "@prisma/client";
 import { CreateTicketInput, UpdateTicketInput } from "../types/ticket";
 import AuditService from "./audit.service";
 import NotificationService from "./notification.service";
 
 class TicketService {
-  async create(userId: string, data: CreateTicketInput) {
+  private async getUserOrgId(userId: string, preferredOrgId?: string): Promise<string> {
+    if (preferredOrgId) {
+      const mem = await prisma.membership.findUnique({
+        where: { userId_organizationId: { userId, organizationId: preferredOrgId } },
+      });
+      if (mem) return mem.organizationId;
+    }
+
     const membership = await prisma.membership.findFirst({
       where: { userId },
     });
@@ -14,18 +21,27 @@ class TicketService {
       throw new Error("User does not belong to any organization.");
     }
 
+    return membership.organizationId;
+  }
+
+  async create(userId: string, data: CreateTicketInput, preferredOrgId?: string) {
+    const orgId = await this.getUserOrgId(userId, preferredOrgId);
+
     const ticket = await prisma.ticket.create({
       data: {
         title: data.title,
-        description: data.description,
+        description: data.description || "",
+        status: (data.status as TicketStatus) || TicketStatus.OPEN,
+        priority: (data.priority as TicketPriority) || TicketPriority.MEDIUM,
         createdById: userId,
-        organizationId: membership.organizationId,
+        organizationId: orgId,
       },
     });
 
+
     // ── Audit: Ticket Created ──────────────────────────────────────────────
     void AuditService.log({
-      organizationId: membership.organizationId,
+      organizationId: orgId,
       userId,
       action: "TICKET_CREATED",
       entityType: "Ticket",
@@ -36,19 +52,14 @@ class TicketService {
     return ticket;
   }
 
-  async getAll(userId: string) {
-    const membership = await prisma.membership.findFirst({
-      where: { userId },
-    });
-
-    if (!membership) {
-      throw new Error("Organization not found.");
-    }
+  async getAll(userId: string, preferredOrgId?: string) {
+    const orgId = await this.getUserOrgId(userId, preferredOrgId);
 
     return prisma.ticket.findMany({
       where: {
-        organizationId: membership.organizationId,
+        organizationId: orgId,
       },
+
       include: {
         createdBy: true,
         assignedTo: true,
@@ -59,9 +70,11 @@ class TicketService {
     });
   }
 
-  async getById(ticketId: string) {
+  async getById(ticketId: string, userId: string, preferredOrgId?: string) {
+    const orgId = await this.getUserOrgId(userId, preferredOrgId);
+
     const ticket = await prisma.ticket.findUnique({
-      where: { id: ticketId },
+      where: { id: ticketId, organizationId: orgId },
       include: {
         createdBy: true,
         assignedTo: true,
@@ -78,14 +91,26 @@ class TicketService {
   }
 
   async update(ticketId: string, userId: string, data: UpdateTicketInput) {
-    // Fetch org for audit log before updating.
+    const membership = await prisma.membership.findFirst({
+      where: { userId },
+    });
+
+    if (!membership) throw new Error("Unauthorized.");
+
+    // Fetch org for audit log and IDOR check before updating.
     const existing = await prisma.ticket.findUnique({
-      where: { id: ticketId },
+      where: { id: ticketId, organizationId: membership.organizationId },
       select: { organizationId: true, assignedToId: true },
     });
 
     if (!existing) {
-      throw new Error("Ticket not found.");
+      throw new Error("Ticket not found or unauthorized.");
+    }
+
+    if (membership.role === "DEVELOPER") {
+      if (data.title || data.description || data.assignedToId) {
+        throw new Error("Developers can only update ticket status.");
+      }
     }
 
     const ticket = await prisma.ticket.update({
@@ -123,14 +148,16 @@ class TicketService {
   }
 
   async delete(ticketId: string, userId: string) {
+    const orgId = await this.getUserOrgId(userId);
+
     // Fetch org before deleting (record won't exist after).
     const existing = await prisma.ticket.findUnique({
-      where: { id: ticketId },
+      where: { id: ticketId, organizationId: orgId },
       select: { organizationId: true, title: true },
     });
 
     if (!existing) {
-      throw new Error("Ticket not found.");
+      throw new Error("Ticket not found or unauthorized.");
     }
 
     await prisma.ticket.delete({

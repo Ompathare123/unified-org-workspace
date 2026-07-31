@@ -8,7 +8,7 @@ interface RegisterInput {
   fullName: string;
   email: string;
   password: string;
-  organizationName: string;
+  organizationName?: string;
 }
 
 interface LoginInput {
@@ -31,35 +31,10 @@ class AuthService {
       throw new Error("Email already exists.");
     }
 
-    // Create slug from organization name
-    const baseSlug = organizationName
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9-]/g, "");
-
-    let slug = baseSlug;
-    let counter = 1;
-
-    while (
-      await prisma.organization.findUnique({
-        where: { slug },
-      })
-    ) {
-      slug = `${baseSlug}-${counter++}`;
-    }
-
     const passwordHash = await hashPassword(password);
 
     // Transaction
     const result = await prisma.$transaction(async (tx: any) => {
-      const organization = await tx.organization.create({
-        data: {
-          name: organizationName,
-          slug,
-        },
-      });
-
       const user = await tx.user.create({
         data: {
           fullName,
@@ -68,13 +43,41 @@ class AuthService {
         },
       });
 
-      await tx.membership.create({
-        data: {
-          userId: user.id,
-          organizationId: organization.id,
-          role: Role.ORG_ADMIN,
-        },
-      });
+      let organization = null;
+
+      if (organizationName && organizationName.trim() !== "") {
+        const baseSlug = organizationName
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, "-")
+          .replace(/[^a-z0-9-]/g, "");
+
+        let slug = baseSlug;
+        let counter = 1;
+
+        while (
+          await tx.organization.findUnique({
+            where: { slug },
+          })
+        ) {
+          slug = `${baseSlug}-${counter++}`;
+        }
+
+        organization = await tx.organization.create({
+          data: {
+            name: organizationName,
+            slug,
+          },
+        });
+
+        await tx.membership.create({
+          data: {
+            userId: user.id,
+            organizationId: organization.id,
+            role: Role.ORG_ADMIN,
+          },
+        });
+      }
 
       return {
         user,
@@ -85,10 +88,18 @@ class AuthService {
     const token = generateToken(result.user.id);
     const { passwordHash: _registerPasswordHash, ...safeUser } = result.user;
 
+    const pendingInvites = await prisma.invitation.count({
+      where: {
+        email: safeUser.email,
+        status: "PENDING",
+        expiresAt: { gt: new Date() }
+      }
+    });
+
     return {
       message: "Registration successful.",
       token,
-      user: safeUser,
+      user: { ...safeUser, hasPendingInvitations: pendingInvites > 0 },
       organization: result.organization,
     };
   }
@@ -140,10 +151,18 @@ class AuthService {
       });
     }
 
+    const pendingInvites = await prisma.invitation.count({
+      where: {
+        email: user.email,
+        status: "PENDING",
+        expiresAt: { gt: new Date() }
+      }
+    });
+
     return {
       message: "Login successful.",
       token,
-      user: safeUser,
+      user: { ...safeUser, hasPendingInvitations: pendingInvites > 0 },
       organizations: memberships.map((m: any) => ({
         id: m.organization.id,
         name: m.organization.name,
@@ -164,9 +183,35 @@ class AuthService {
       throw new Error("User not found.");
     }
 
+    const memberships = await prisma.membership.findMany({
+      where: {
+        userId: user.id,
+      },
+      include: {
+        organization: true,
+      },
+    });
+
     const { passwordHash, ...safeUser } = user;
 
-    return safeUser;
+    const pendingInvites = await prisma.invitation.count({
+      where: {
+        email: user.email,
+        status: "PENDING",
+        expiresAt: { gt: new Date() }
+      }
+    });
+
+    return { 
+      ...safeUser, 
+      hasPendingInvitations: pendingInvites > 0,
+      organizations: memberships.map((m: any) => ({
+        id: m.organization.id,
+        name: m.organization.name,
+        slug: m.organization.slug,
+        role: m.role,
+      })),
+    };
   }
 }
 

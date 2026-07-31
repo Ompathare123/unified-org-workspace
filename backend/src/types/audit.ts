@@ -3,6 +3,7 @@ export interface AuditLogFilters {
   endDate?: string;
   userId?: string;
   entityType?: string;
+  entityId?: string;
   action?: string;
 }
 

@@ -4,6 +4,7 @@ import { env } from "../config/env";
 
 export interface AuthRequest extends Request {
   userId?: string;
+  orgId?: string;
 }
 
 export const authenticate = (
@@ -28,8 +29,13 @@ export const authenticate = (
     };
 
     req.userId = decoded.userId;
+    const orgIdHeader = req.headers["x-organization-id"];
+    if (orgIdHeader && typeof orgIdHeader === "string") {
+      req.orgId = orgIdHeader;
+    }
 
     next();
+
   } catch {
     return res.status(401).json({
       success: false,

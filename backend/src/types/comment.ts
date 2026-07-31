@@ -1,9 +1,9 @@
 interface CreateCommentInput {
-  message: string;
+  content: string;
 }
 
 interface UpdateCommentInput {
-  message: string;
+  content: string;
 }
 
 export { CreateCommentInput, UpdateCommentInput };

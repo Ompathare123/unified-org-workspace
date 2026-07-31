@@ -48,6 +48,29 @@ class ConnectionController {
       });
     }
   }
+
+  async getConnections(req: AuthRequest, res: Response) {
+    try {
+      const connections = await ConnectionService.getConnections(req.userId!);
+      return res.json(connections);
+    } catch (error) {
+      return res.status(400).json({
+        message: error instanceof Error ? error.message : "Failed to fetch connections",
+      });
+    }
+  }
+
+  async listOrganizations(req: AuthRequest, res: Response) {
+    try {
+      const orgs = await ConnectionService.listOrganizations(req.userId!);
+      return res.json(orgs);
+    } catch (error) {
+      return res.status(400).json({
+        message: error instanceof Error ? error.message : "Failed to fetch organizations",
+      });
+    }
+  }
 }
 
 export default new ConnectionController();
+

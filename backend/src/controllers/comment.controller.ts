@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
-import CommentService = require("../services/comment.service");
+import CommentService from "../services/comment.service";
 import { AuthRequest } from "../middleware/auth.middleware";
+
 
 type TicketParams = {
   ticketId: string;
@@ -43,7 +44,8 @@ class CommentController {
   ) {
     try {
       const comments = await CommentService.getAll(
-        req.params.ticketId
+        req.params.ticketId,
+        req.userId!
       );
 
       return res.json(comments);
@@ -61,6 +63,7 @@ class CommentController {
     try {
       const comment = await CommentService.update(
         req.params.commentId,
+        req.userId!,
         req.body
       );
 
@@ -78,7 +81,8 @@ class CommentController {
   ) {
     try {
       const result = await CommentService.delete(
-        req.params.commentId
+        req.params.commentId,
+        req.userId!
       );
 
       return res.json(result);

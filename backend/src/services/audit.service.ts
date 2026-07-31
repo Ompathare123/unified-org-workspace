@@ -31,23 +31,35 @@ class AuditService {
   // Returns org-scoped logs, newest first.
   // Supports optional filters: startDate, endDate, userId, entityType, action
   // ─────────────────────────────────────────────────────────────────────────
-  async getAll(requestingUserId: string, filters: AuditLogFilters) {
-    // Resolve the caller's organization.
-    const membership = await prisma.membership.findFirst({
-      where: { userId: requestingUserId },
-      select: { organizationId: true },
-    });
+  async getAll(requestingUserId: string, filters: AuditLogFilters, preferredOrgId?: string) {
+    let organizationId = preferredOrgId;
 
-    if (!membership) {
-      throw new Error("User does not belong to any organization.");
+    if (organizationId) {
+      const mem = await prisma.membership.findUnique({
+        where: { userId_organizationId: { userId: requestingUserId, organizationId } },
+      });
+      if (!mem) organizationId = undefined;
     }
 
-    const { organizationId } = membership;
+    if (!organizationId) {
+      const membership = await prisma.membership.findFirst({
+        where: { userId: requestingUserId },
+        select: { organizationId: true },
+      });
+
+      if (!membership) {
+        throw new Error("User does not belong to any organization.");
+      }
+
+      organizationId = membership.organizationId;
+    }
 
     const where: Record<string, unknown> = { organizationId };
 
+
     if (filters.userId) where.userId = filters.userId;
     if (filters.entityType) where.entityType = filters.entityType;
+    if (filters.entityId) where.entityId = filters.entityId;
     if (filters.action) where.action = filters.action;
 
     if (filters.startDate || filters.endDate) {
@@ -115,8 +127,9 @@ class AuditService {
   // Returns the org's audit logs as a CSV string.
   // Columns: timestamp, user, action, entityType, entityId
   // ─────────────────────────────────────────────────────────────────────────
-  async exportCsv(requestingUserId: string): Promise<string> {
-    const logs = await this.getAll(requestingUserId, {});
+  async exportCsv(requestingUserId: string, preferredOrgId?: string): Promise<string> {
+    const logs = await this.getAll(requestingUserId, {}, preferredOrgId);
+
 
     const header = "timestamp,user,action,entityType,entityId";
 

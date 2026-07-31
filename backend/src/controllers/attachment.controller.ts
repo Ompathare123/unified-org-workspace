@@ -7,10 +7,22 @@ class AttachmentController {
   // POST /api/tickets/:ticketId/attachments
   async create(req: AuthRequest, res: Response): Promise<Response> {
     try {
+      if (!req.file) {
+        throw new Error("No file uploaded");
+      }
+
+      const ticketId = req.params.ticketId as string;
+      const payload: CreateAttachmentInput = {
+        fileName: req.file.originalname,
+        fileUrl: `/uploads/tickets/${ticketId}/${req.file.filename}`,
+        mimeType: req.file.mimetype,
+        fileSize: req.file.size,
+      };
+
       const attachment = await AttachmentService.create(
-        req.params.ticketId as string,
+        ticketId,
         req.userId!,
-        req.body as CreateAttachmentInput
+        payload
       );
 
       return res.status(201).json(attachment);

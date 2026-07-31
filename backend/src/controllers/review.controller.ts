@@ -10,6 +10,7 @@ class ReviewController {
       const review = await ReviewService.create(
         req.params.prId as string,
         req.userId!,
+        req.orgId!,
         req.body as CreateReviewInput
       );
 
@@ -24,7 +25,7 @@ class ReviewController {
   // GET /api/prs/:prId/reviews
   async getByPR(req: AuthRequest, res: Response): Promise<Response> {
     try {
-      const reviews = await ReviewService.getByPR(req.params.prId as string);
+      const reviews = await ReviewService.getByPR(req.params.prId as string, req.orgId!);
 
       return res.json(reviews);
     } catch (error) {

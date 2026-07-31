@@ -7,9 +7,10 @@ class DigestController {
   async getDigest(req: AuthRequest, res: Response) {
     try {
       const query = req.query as DigestQueryParams;
-      const digest = await DigestService.generateDigest(req.userId!, query);
+      const digest = await DigestService.generateDigest(req.userId!, query, req.orgId);
       return res.json(digest);
     } catch (error) {
+
       return res.status(400).json({
         message: error instanceof Error ? error.message : "Failed to generate digest",
       });

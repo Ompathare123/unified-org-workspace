@@ -72,15 +72,20 @@ class ReviewService {
   async create(
     prId: string,
     reviewerId: string,
+    orgId: string,
     data: CreateReviewInput
   ) {
     const pr = await prisma.pullRequest.findUnique({
-      where: { id: prId },
+      where: { id: prId, organizationId: orgId },
       select: { id: true, authorId: true, organizationId: true },
     });
 
     if (!pr) {
-      throw new Error("Pull request not found.");
+      throw new Error("Pull request not found or unauthorized.");
+    }
+
+    if (pr.authorId === reviewerId && data.decision === "APPROVED") {
+      throw new Error("Cannot approve your own pull request.");
     }
 
     const existing = await prisma.pRReview.findFirst({
@@ -90,30 +95,46 @@ class ReviewService {
       },
     });
 
+    let review;
+    
     if (existing) {
-      throw new Error(
-        "You have already submitted a review for this pull request. Use PUT to update it."
-      );
-    }
-
-    const review = await prisma.pRReview.create({
-      data: {
-        pullRequestId: prId,
-        reviewerId,
-        decision: data.decision,
-        comment: data.comment,
-      },
-      include: {
-        reviewer: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-            avatar: true,
+      review = await prisma.pRReview.update({
+        where: { id: existing.id },
+        data: {
+          decision: data.decision,
+          comment: data.comment,
+        },
+        include: {
+          reviewer: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              avatar: true,
+            },
           },
         },
-      },
-    });
+      });
+    } else {
+      review = await prisma.pRReview.create({
+        data: {
+          pullRequestId: prId,
+          reviewerId,
+          decision: data.decision,
+          comment: data.comment,
+        },
+        include: {
+          reviewer: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              avatar: true,
+            },
+          },
+        },
+      });
+    }
 
     await this.syncPRStatus(prId);
 
@@ -143,9 +164,9 @@ class ReviewService {
   // ─────────────────────────────────────────────────────────────────────────
   // GET /api/prs/:prId/reviews
   // ─────────────────────────────────────────────────────────────────────────
-  async getByPR(prId: string) {
+  async getByPR(prId: string, orgId: string) {
     const pr = await prisma.pullRequest.findUnique({
-      where: { id: prId },
+      where: { id: prId, organizationId: orgId },
       select: { id: true },
     });
 

@@ -10,6 +10,7 @@ class VersionController {
       const version = await VersionService.create(
         req.params.prId as string,
         req.userId!,
+        req.orgId!,
         req.body as CreateVersionInput
       );
 
@@ -24,7 +25,7 @@ class VersionController {
   // GET /api/prs/:prId/versions
   async getByPR(req: AuthRequest, res: Response): Promise<Response> {
     try {
-      const versions = await VersionService.getByPR(req.params.prId as string);
+      const versions = await VersionService.getByPR(req.params.prId as string, req.orgId!);
 
       return res.json(versions);
     } catch (error) {
@@ -37,7 +38,7 @@ class VersionController {
   // GET /api/versions/:versionId
   async getById(req: AuthRequest, res: Response): Promise<Response> {
     try {
-      const version = await VersionService.getById(req.params.versionId as string);
+      const version = await VersionService.getById(req.params.versionId as string, req.orgId!);
 
       return res.json(version);
     } catch (error) {

@@ -3,7 +3,13 @@ import { DigestQueryParams, DigestResult } from "../types/digest";
 import { TicketStatus, PRStatus, ReviewDecision } from "@prisma/client";
 
 class DigestService {
-  private async getUserOrgId(userId: string): Promise<string> {
+  private async getUserOrgId(userId: string, preferredOrgId?: string): Promise<string> {
+    if (preferredOrgId) {
+      const mem = await prisma.membership.findUnique({
+        where: { userId_organizationId: { userId, organizationId: preferredOrgId } },
+      });
+      if (mem) return mem.organizationId;
+    }
     const membership = await prisma.membership.findFirst({
       where: { userId },
     });
@@ -13,8 +19,10 @@ class DigestService {
     return membership.organizationId;
   }
 
-  async generateDigest(userId: string, query: DigestQueryParams): Promise<DigestResult> {
-    const orgId = await this.getUserOrgId(userId);
+
+  async generateDigest(userId: string, query: DigestQueryParams, preferredOrgId?: string): Promise<DigestResult> {
+    const orgId = await this.getUserOrgId(userId, preferredOrgId);
+
 
     const dateFilter: any = {};
     if (query.startDate) {

@@ -5,6 +5,9 @@ export interface CreatePRInput {
   description: string;
   sourceBranch: string;
   targetBranch: string;
+  requiredApprovals?: number;
+  reviewers?: string[];
+  status?: PRStatus; // allow starting in draft or open
 }
 
 export interface UpdatePRInput {
@@ -13,4 +16,5 @@ export interface UpdatePRInput {
   sourceBranch?: string;
   targetBranch?: string;
   status?: PRStatus;
+  requiredApprovals?: number;
 }

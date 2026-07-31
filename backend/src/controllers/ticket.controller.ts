@@ -8,7 +8,8 @@ class TicketController {
     try {
       const ticket = await TicketService.create(
         req.userId!,
-        req.body
+        req.body,
+        req.orgId
       );
 
       return res.status(201).json(ticket);
@@ -21,7 +22,7 @@ class TicketController {
 
   async getAll(req: AuthRequest, res: Response) {
     try {
-      const tickets = await TicketService.getAll(req.userId!);
+      const tickets = await TicketService.getAll(req.userId!, req.orgId);
 
       return res.json(tickets);
     } catch (error) {
@@ -31,6 +32,7 @@ class TicketController {
     }
   }
 
+
   async getById(req: AuthRequest, res: Response) {
     try {
       const ticketId = req.params.id as string;
@@ -39,7 +41,7 @@ class TicketController {
         throw new Error("Ticket ID is required.");
       }
 
-      const ticket = await TicketService.getById(ticketId);
+      const ticket = await TicketService.getById(ticketId, req.userId!);
 
       return res.json(ticket);
     } catch (error) {

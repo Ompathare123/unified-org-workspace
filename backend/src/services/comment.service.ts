@@ -12,31 +12,31 @@ class CommentService {
     data: CreateCommentInput
   ) {
     const ticket = await prisma.ticket.findUnique({
-      where: {
-        id: ticketId,
-      },
+      where: { id: ticketId },
+      select: { organizationId: true },
     });
 
-    if (!ticket) {
-      throw new Error("Ticket not found.");
-    }
+    if (!ticket) throw new Error("Ticket not found.");
+
+    const membership = await prisma.membership.findUnique({
+      where: { userId_organizationId: { userId, organizationId: ticket.organizationId } },
+    });
+
+    if (!membership) throw new Error("Unauthorized to comment on this ticket.");
 
     const comment = await prisma.ticketComment.create({
       data: {
         ticketId,
-        authorId: userId,
-        message: data.message,
+        userId,
+        content: data.content,
       },
-      include: {
-        author: true,
-      },
+      include: { user: true },
     });
 
-    // ── Audit: Comment Added ──────────────────────────────────────────────
     void AuditService.log({
       organizationId: ticket.organizationId,
       userId,
-      action: "COMMENT_ADDED",
+      action: "COMMENT_CREATED",
       entityType: "TicketComment",
       entityId: comment.id,
       metadata: { ticketId },
@@ -45,45 +45,104 @@ class CommentService {
     return comment;
   }
 
-  async getAll(ticketId: string) {
+  async getAll(ticketId: string, userId: string) {
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      select: { organizationId: true },
+    });
+
+    if (!ticket) throw new Error("Ticket not found.");
+
+    const membership = await prisma.membership.findUnique({
+      where: { userId_organizationId: { userId, organizationId: ticket.organizationId } },
+    });
+
+    if (!membership) throw new Error("Unauthorized to view comments on this ticket.");
+
     return prisma.ticketComment.findMany({
-      where: {
-        ticketId,
-      },
-      include: {
-        author: true,
-      },
-      orderBy: {
-        createdAt: "asc",
-      },
+      where: { ticketId },
+      include: { user: true },
+      orderBy: { createdAt: "asc" },
     });
   }
 
-  async update(
-    commentId: string,
-    data: UpdateCommentInput
-  ) {
-    return prisma.ticketComment.update({
-      where: {
-        id: commentId,
-      },
+  async update(commentId: string, userId: string, data: UpdateCommentInput) {
+    const existing = await prisma.ticketComment.findUnique({
+      where: { id: commentId },
+      include: { ticket: { select: { organizationId: true } } },
+    });
+
+    if (!existing) throw new Error("Comment not found.");
+    if (existing.isDeleted) throw new Error("Cannot edit a deleted comment.");
+
+    const membership = await prisma.membership.findUnique({
+      where: { userId_organizationId: { userId, organizationId: existing.ticket.organizationId } },
+    });
+
+    if (!membership) throw new Error("Unauthorized.");
+
+    if (existing.userId !== userId && membership.role !== "ORG_ADMIN" && membership.role !== "PLATFORM_ADMIN") {
+      throw new Error("You can only edit your own comments.");
+    }
+
+    const updated = await prisma.ticketComment.update({
+      where: { id: commentId },
       data: {
-        message: data.message,
+        content: data.content,
+        isEdited: true,
       },
+      include: { user: true },
     });
+
+    void AuditService.log({
+      organizationId: existing.ticket.organizationId,
+      userId,
+      action: "COMMENT_EDITED",
+      entityType: "TicketComment",
+      entityId: commentId,
+    });
+
+    return updated;
   }
 
-  async delete(commentId: string) {
-    await prisma.ticketComment.delete({
-      where: {
-        id: commentId,
+  async delete(commentId: string, userId: string) {
+    const existing = await prisma.ticketComment.findUnique({
+      where: { id: commentId },
+      include: { ticket: { select: { organizationId: true } } },
+    });
+
+    if (!existing) throw new Error("Comment not found.");
+    if (existing.isDeleted) throw new Error("Comment is already deleted.");
+
+    const membership = await prisma.membership.findUnique({
+      where: { userId_organizationId: { userId, organizationId: existing.ticket.organizationId } },
+    });
+
+    if (!membership) throw new Error("Unauthorized.");
+
+    if (existing.userId !== userId && membership.role !== "ORG_ADMIN" && membership.role !== "PLATFORM_ADMIN") {
+      throw new Error("You can only delete your own comments.");
+    }
+
+    await prisma.ticketComment.update({
+      where: { id: commentId },
+      data: {
+        isDeleted: true,
+        deletedAt: new Date(),
+        deletedBy: userId,
       },
     });
 
-    return {
-      message: "Comment deleted successfully.",
-    };
+    void AuditService.log({
+      organizationId: existing.ticket.organizationId,
+      userId,
+      action: "COMMENT_DELETED",
+      entityType: "TicketComment",
+      entityId: commentId,
+    });
+
+    return { message: "Comment deleted successfully." };
   }
 }
 
-export = new CommentService();
+export default new CommentService();

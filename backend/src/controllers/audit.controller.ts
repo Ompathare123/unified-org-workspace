@@ -12,10 +12,11 @@ class AuditController {
         endDate: req.query.endDate as string | undefined,
         userId: req.query.userId as string | undefined,
         entityType: req.query.entityType as string | undefined,
+        entityId: (req.query.entityId || req.query.resourceId) as string | undefined,
         action: req.query.action as string | undefined,
       };
 
-      const logs = await AuditService.getAll(req.userId!, filters);
+      const logs = await AuditService.getAll(req.userId!, filters, req.orgId);
 
       return res.json(logs);
     } catch (error) {
@@ -28,7 +29,8 @@ class AuditController {
   // GET /api/audit-logs/export  — must be declared BEFORE /:id route
   async exportCsv(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const csv = await AuditService.exportCsv(req.userId!);
+      const csv = await AuditService.exportCsv(req.userId!, req.orgId);
+
 
       res.setHeader("Content-Type", "text/csv");
       res.setHeader(

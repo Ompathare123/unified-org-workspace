@@ -9,6 +9,12 @@ const router = Router();
 // Only ORG_ADMIN or PLATFORM_ADMIN can manage connections
 const requireAdmin = requireRole(Role.ORG_ADMIN, Role.PLATFORM_ADMIN);
 
+// GET /api/connections
+router.get("/", authenticate, ConnectionController.getConnections);
+
+// GET /api/connections/organizations
+router.get("/organizations", authenticate, ConnectionController.listOrganizations);
+
 // POST /api/connections/request
 router.post("/request", authenticate, requireAdmin, ConnectionController.requestConnection);
 
@@ -22,3 +28,4 @@ router.post("/:id/reject", authenticate, requireAdmin, ConnectionController.reje
 router.delete("/:id", authenticate, requireAdmin, ConnectionController.revokeConnection);
 
 export default router;
+

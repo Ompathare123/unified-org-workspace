@@ -12,7 +12,7 @@ router.get("/", authenticate, TicketController.getAll);
 
 router.get("/:id", authenticate, TicketController.getById);
 
-router.put("/:id", authenticate, requireRole(Role.ORG_ADMIN, Role.SUPPORT_AGENT), TicketController.update);
+router.put("/:id", authenticate, requireRole(Role.ORG_ADMIN, Role.SUPPORT_AGENT, Role.DEVELOPER), TicketController.update);
 
 router.delete("/:id", authenticate, requireRole(Role.ORG_ADMIN, Role.SUPPORT_AGENT), TicketController.delete);
 

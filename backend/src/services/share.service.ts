@@ -5,7 +5,13 @@ import AuditService from "./audit.service";
 import NotificationService from "./notification.service";
 
 class ShareService {
-  private async getUserOrgId(userId: string): Promise<string> {
+  private async getUserOrgId(userId: string, preferredOrgId?: string): Promise<string> {
+    if (preferredOrgId) {
+      const mem = await prisma.membership.findUnique({
+        where: { userId_organizationId: { userId, organizationId: preferredOrgId } },
+      });
+      if (mem) return mem.organizationId;
+    }
     const membership = await prisma.membership.findFirst({
       where: { userId },
     });
@@ -14,6 +20,7 @@ class ShareService {
     }
     return membership.organizationId;
   }
+
 
   // 1. POST /api/share
   async shareItem(userId: string, data: CreateShareInput) {
