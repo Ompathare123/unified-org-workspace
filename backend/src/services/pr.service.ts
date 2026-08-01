@@ -3,6 +3,7 @@ import prisma from "../config/prisma";
 import { CreatePRInput, UpdatePRInput } from "../types/pr";
 import VersionService from "./version.service";
 import AuditService from "./audit.service";
+import NotificationService from "./notification.service";
 
 class PRService {
   private async getUserOrgId(userId: string, preferredOrgId?: string): Promise<string> {
@@ -25,6 +26,10 @@ class PRService {
   }
 
   async create(userId: string, data: CreatePRInput, preferredOrgId?: string) {
+    if (!data.reviewers || data.reviewers.length < (data.requiredApprovals || 1)) {
+      throw new Error("Validation error: You must select at least the required number of reviewers.");
+    }
+
     const orgId = await this.getUserOrgId(userId, preferredOrgId);
 
     const pr = await prisma.pullRequest.create({
@@ -66,6 +71,19 @@ class PRService {
       entityId: pr.id,
       metadata: { title: pr.title, status: pr.status },
     });
+
+    if (data.reviewers && data.reviewers.length > 0) {
+      data.reviewers.forEach(reviewerId => {
+        void NotificationService.send({
+          organizationId: orgId,
+          userId: reviewerId,
+          type: "REVIEW_REQUEST",
+          title: "Review Requested",
+          message: `You have been assigned to review PR '${pr.title}'.`,
+          metadata: { pullRequestId: pr.id },
+        });
+      });
+    }
 
     return { ...pr, createdBy: pr.author };
   }

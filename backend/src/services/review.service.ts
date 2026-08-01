@@ -95,46 +95,29 @@ class ReviewService {
       },
     });
 
-    let review;
-    
-    if (existing) {
-      review = await prisma.pRReview.update({
-        where: { id: existing.id },
-        data: {
-          decision: data.decision,
-          comment: data.comment,
-        },
-        include: {
-          reviewer: {
-            select: {
-              id: true,
-              fullName: true,
-              email: true,
-              avatar: true,
-            },
-          },
-        },
-      });
-    } else {
-      review = await prisma.pRReview.create({
-        data: {
-          pullRequestId: prId,
-          reviewerId,
-          decision: data.decision,
-          comment: data.comment,
-        },
-        include: {
-          reviewer: {
-            select: {
-              id: true,
-              fullName: true,
-              email: true,
-              avatar: true,
-            },
-          },
-        },
-      });
+    if (!existing) {
+      const err: any = new Error("Unauthorized: You are not an assigned reviewer for this PR.");
+      err.status = 403;
+      throw err;
     }
+
+    const review = await prisma.pRReview.update({
+      where: { id: existing.id },
+      data: {
+        decision: data.decision,
+        comment: data.comment,
+      },
+      include: {
+        reviewer: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            avatar: true,
+          },
+        },
+      },
+    });
 
     await this.syncPRStatus(prId);
 

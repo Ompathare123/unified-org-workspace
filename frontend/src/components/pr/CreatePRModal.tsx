@@ -85,6 +85,10 @@ export const CreatePRModal: React.FC<CreatePRModalProps> = ({ onClose }) => {
     if (selectedReviewers.includes(userId)) {
       setSelectedReviewers(prev => prev.filter(id => id !== userId));
     } else {
+      if (selectedReviewers.length >= requiredApprovals) {
+        toast.error("You can only select up to the required approvals limit.");
+        return;
+      }
       setSelectedReviewers(prev => [...prev, userId]);
     }
   };
@@ -163,7 +167,13 @@ export const CreatePRModal: React.FC<CreatePRModalProps> = ({ onClose }) => {
                 min={1}
                 max={10}
                 value={requiredApprovals}
-                onChange={(e) => setRequiredApprovals(parseInt(e.target.value) || 1)}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value) || 1;
+                  setRequiredApprovals(val);
+                  if (selectedReviewers.length > val) {
+                    setSelectedReviewers(prev => prev.slice(0, val));
+                  }
+                }}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#0066FF]"
               />
             </div>
