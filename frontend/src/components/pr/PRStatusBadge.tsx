@@ -35,7 +35,7 @@ export const PRStatusBadge: React.FC<PRStatusBadgeProps> = ({ status }) => {
         return {
           style: "bg-[#FEF2F2] text-[#DC2626] border-[#FEE2E2]",
           icon: <XCircle className="w-3 h-3 text-[#DC2626]" />,
-          label: "Changes Requested",
+          label: "Closed",
         };
       case "Draft":
         return {

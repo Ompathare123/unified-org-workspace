@@ -160,7 +160,7 @@ const PRDetailPage: React.FC = () => {
                 (pr.status === "CHANGES_REQUESTED" || pr.status === "REJECTED") ? "bg-red-50 text-red-700 border-red-200" :
                 "bg-emerald-50 text-emerald-700 border-emerald-200"
               }`}>
-                {pr.status === "REJECTED" ? "CHANGES REQUESTED" : pr.status.replace(/_/g, ' ')}
+                {pr.status === "REJECTED" ? "CLOSED" : pr.status.replace(/_/g, ' ')}
               </span>
             </div>
             <h1 className="text-2xl font-extrabold text-gray-900 mt-2">{pr.title}</h1>
