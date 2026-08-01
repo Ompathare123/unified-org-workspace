@@ -51,12 +51,11 @@ export const PRFilters: React.FC<PRFiltersProps> = ({
             className="appearance-none h-10 pl-3.5 pr-8 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 outline-none focus:border-[#0066FF] cursor-pointer"
           >
             <option value="All">Status: All</option>
-            <option value="In Review">Status: In Review</option>
-            <option value="Waiting">Status: Waiting</option>
-            <option value="Approved">Status: Approved</option>
-            <option value="Merged">Status: Merged</option>
-            <option value="Rejected">Status: Rejected</option>
-            <option value="Draft">Status: Draft</option>
+            <option value="IN_REVIEW">Status: In Review</option>
+            <option value="APPROVED">Status: Approved</option>
+            <option value="MERGED">Status: Merged</option>
+            <option value="REJECTED">Status: Rejected</option>
+            <option value="DRAFT">Status: Draft</option>
           </select>
           <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
