@@ -1,4 +1,5 @@
 import React from "react";
+import { useAuth } from "@/context/AuthContext";
 import SearchBar from "./SearchBar";
 import { ChevronDown, SlidersHorizontal } from "lucide-react";
 
@@ -29,6 +30,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   onAssigneeChange,
   onClearAll,
 }) => {
+  const { organizations } = useAuth();
+  
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 my-6">
       <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
@@ -71,12 +74,14 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           <select
             value={orgFilter}
             onChange={(e) => onOrgChange(e.target.value)}
-            className="appearance-none h-10 pl-3.5 pr-8 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 outline-none focus:border-[#0066FF] cursor-pointer"
+            className="appearance-none h-10 pl-3.5 pr-8 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 outline-none focus:border-[#0066FF] cursor-pointer max-w-[200px] truncate"
           >
-            <option value="Acme Corp">Requester Org: Acme Corp</option>
-            <option value="Stark Industries">Requester Org: Stark Industries</option>
-            <option value="Wayne Enterprises">Requester Org: Wayne Enterprises</option>
             <option value="All">Requester Org: All</option>
+            {organizations.map((org: any) => (
+              <option key={org.id} value={org.name}>
+                Requester Org: {org.name}
+              </option>
+            ))}
           </select>
           <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
