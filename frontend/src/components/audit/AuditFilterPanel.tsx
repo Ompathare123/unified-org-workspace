@@ -1,4 +1,7 @@
 import React, { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import api from "@/lib/api";
 import DateRangePicker from "./DateRangePicker";
 import AuditSearch from "./AuditSearch";
 import { SlidersHorizontal, ChevronDown, Search } from "lucide-react";
@@ -22,6 +25,17 @@ export const AuditFilterPanel: React.FC<AuditFilterPanelProps> = ({
   const [entityIdSearch, setEntityIdSearch] = useState("");
   const [ipSearch, setIpSearch] = useState("");
   const [resultFilter, setResultFilter] = useState("All Results");
+
+  const { activeOrg, organizations } = useAuth();
+  
+  const { data: members } = useQuery({
+    queryKey: ["orgMembers", activeOrg?.id],
+    queryFn: async () => {
+      const res = await api.get(`/orgs/members`);
+      return res.data;
+    },
+    enabled: !!activeOrg?.id,
+  });
 
   // Application Source Multi-select Dropdown
   const [appSourceOpen, setAppSourceOpen] = useState(false);
@@ -92,10 +106,11 @@ export const AuditFilterPanel: React.FC<AuditFilterPanelProps> = ({
               className="w-full appearance-none h-10 pl-3.5 pr-8 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 outline-none focus:border-[#0066FF] cursor-pointer"
             >
               <option value="All Users">All Users</option>
-              <option value="John S. (Admin)">John S. (Admin)</option>
-              <option value="Alex R. (Globex)">Alex R. (Globex)</option>
-              <option value="Meera K. (Acme)">Meera K. (Acme)</option>
-              <option value="Dev P. (Acme)">Dev P. (Acme)</option>
+              {members?.map((m: any) => (
+                <option key={m.user.id} value={m.user.id}>
+                  {m.user.fullName}
+                </option>
+              ))}
             </select>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
@@ -198,9 +213,11 @@ export const AuditFilterPanel: React.FC<AuditFilterPanelProps> = ({
               className="w-full appearance-none h-10 pl-3.5 pr-8 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 outline-none focus:border-[#0066FF] cursor-pointer"
             >
               <option value="All Organizations">All Organizations</option>
-              <option value="Acme Corp">Acme Corp</option>
-              <option value="Globex">Globex</option>
-              <option value="Stark Industries">Stark Industries</option>
+              {organizations.map((org: any) => (
+                <option key={org.id} value={org.id}>
+                  {org.name}
+                </option>
+              ))}
             </select>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
