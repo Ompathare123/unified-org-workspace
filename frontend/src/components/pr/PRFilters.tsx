@@ -1,4 +1,7 @@
 import React from "react";
+import { useAuth } from "@/context/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import api from "@/lib/api";
 import PRSearch from "./PRSearch";
 import { ChevronDown, SlidersHorizontal } from "lucide-react";
 
@@ -23,6 +26,17 @@ export const PRFilters: React.FC<PRFiltersProps> = ({
   branchFilter,
   onBranchChange,
 }) => {
+  const { activeOrg } = useAuth();
+  
+  const { data: members } = useQuery({
+    queryKey: ["orgMembers", activeOrg?.id],
+    queryFn: async () => {
+      const res = await api.get(`/orgs/members`);
+      return res.data;
+    },
+    enabled: !!activeOrg?.id,
+  });
+
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 my-4">
       <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
@@ -52,12 +66,14 @@ export const PRFilters: React.FC<PRFiltersProps> = ({
           <select
             value={authorFilter}
             onChange={(e) => onAuthorChange(e.target.value)}
-            className="appearance-none h-10 pl-3.5 pr-8 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 outline-none focus:border-[#0066FF] cursor-pointer"
+            className="appearance-none h-10 pl-3.5 pr-8 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 outline-none focus:border-[#0066FF] cursor-pointer max-w-[200px] truncate"
           >
             <option value="All">Author: All</option>
-            <option value="Alex R. (Globex)">Author: Alex R. (Globex)</option>
-            <option value="Meera K. (Acme)">Author: Meera K. (Acme)</option>
-            <option value="Dev P. (Acme)">Author: Dev P. (Acme)</option>
+            {members?.map((m: any) => (
+              <option key={m.user.id} value={m.user.id}>
+                Author: {m.user.fullName}
+              </option>
+            ))}
           </select>
           <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
