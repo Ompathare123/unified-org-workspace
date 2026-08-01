@@ -21,6 +21,7 @@ interface TicketSidebarProps {
   members?: any[];
   onAssigneeChange?: (userId: string) => void;
   onStatusChange?: (status: string) => void;
+  canAssign?: boolean;
 }
 
 export const TicketSidebar: React.FC<TicketSidebarProps> = ({
@@ -40,6 +41,7 @@ export const TicketSidebar: React.FC<TicketSidebarProps> = ({
   members = [],
   onAssigneeChange,
   onStatusChange,
+  canAssign = true,
 }) => {
   const [currentStatus, setCurrentStatus] = useState(status);
   
@@ -106,8 +108,9 @@ export const TicketSidebar: React.FC<TicketSidebarProps> = ({
           {assignee.name ? (
             <button
               type="button"
-              onClick={() => setShowAssigneeMenu((v) => !v)}
-              className="flex items-center gap-2 p-1.5 -ml-1.5 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer"
+              disabled={!canAssign}
+              onClick={() => canAssign && setShowAssigneeMenu((v) => !v)}
+              className={`flex items-center gap-2 p-1.5 -ml-1.5 rounded-xl transition-colors ${canAssign ? 'hover:bg-slate-50 cursor-pointer' : 'cursor-default'}`}
             >
               <div className={`w-6 h-6 rounded-full ${assignee.bg || 'bg-[#0066FF]'} text-white font-bold text-[10px] flex items-center justify-center shrink-0`}>
                 {assignee.initials || "U"}
@@ -115,22 +118,23 @@ export const TicketSidebar: React.FC<TicketSidebarProps> = ({
               <div className="text-left">
                 <div className="font-semibold text-slate-800 text-xs flex items-center gap-1.5">
                   {assignee.name}
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  {canAssign && <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
                 </div>
               </div>
             </button>
           ) : (
             <button
               type="button"
-              onClick={() => setShowAssigneeMenu((v) => !v)}
-              className="px-3 py-1 rounded-lg bg-slate-100 border border-slate-200 text-slate-600 text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-200 transition-colors cursor-pointer"
+              disabled={!canAssign}
+              onClick={() => canAssign && setShowAssigneeMenu((v) => !v)}
+              className={`px-3 py-1 rounded-lg bg-slate-100 border border-slate-200 text-slate-600 text-xs font-semibold flex items-center gap-1.5 transition-colors ${canAssign ? 'hover:bg-slate-200 cursor-pointer' : 'cursor-default'}`}
             >
               <span>Unassigned</span>
-              <ChevronDown className="w-3.5 h-3.5" />
+              {canAssign && <ChevronDown className="w-3.5 h-3.5" />}
             </button>
           )}
 
-          {showAssigneeMenu && members && (
+          {canAssign && showAssigneeMenu && members && (
             <div className="absolute left-0 mt-1 w-48 rounded-xl bg-white border border-slate-200 shadow-xl py-1 z-50 max-h-60 overflow-y-auto">
               {members.map((member: any) => (
                 <button

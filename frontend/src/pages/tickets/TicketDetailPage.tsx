@@ -256,6 +256,13 @@ export const TicketDetailPage: React.FC = () => {
 
   // Note: Attachments are now handled directly in the UI using uploadAttachmentMutation and deleteAttachmentMutation
 
+  // 7. Compute Assignment Permissions
+  const isCreator = ticketData?.createdBy?.id === user?.id;
+  const canAssign = 
+    activeOrg?.role === "ORG_ADMIN" || 
+    activeOrg?.role === "PLATFORM_ADMIN" || 
+    (activeOrg?.role === "SUPPORT_AGENT" && isCreator);
+
 
   return (
     <div className="space-y-6">
@@ -595,6 +602,7 @@ export const TicketDetailPage: React.FC = () => {
             tags={[]}
             createdAt={new Date(ticketData?.createdAt || Date.now()).toLocaleDateString()}
             updatedAt={new Date(ticketData?.updatedAt || Date.now()).toLocaleDateString()}
+            canAssign={canAssign}
           />
         </div>
       </div>
