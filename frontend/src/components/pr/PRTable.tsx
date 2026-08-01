@@ -196,13 +196,6 @@ export const PRTable: React.FC<PRTableProps> = ({
         header: "Actions",
         cell: (info) => (
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => alert(`View Diff for PR ${info.row.original.id}`)}
-              className="px-3 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-[#0066FF] transition-colors cursor-pointer"
-            >
-              View Diff
-            </button>
             <PRActionDropdown 
               prId={info.row.original.rawId} 
               authorId={info.row.original.authorId}
