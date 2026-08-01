@@ -20,7 +20,7 @@ import MembersPage from "@/pages/members/MembersPage";
 import UserInvitationsPage from "@/pages/members/UserInvitationsPage";
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { loading } = useAuth();
+  const { loading, user } = useAuth();
 
   if (loading) {
     return (
@@ -28,6 +28,10 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
         Loading workspace...
       </div>
     );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
   }
 
   return <>{children}</>;
