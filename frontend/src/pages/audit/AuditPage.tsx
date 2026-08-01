@@ -8,7 +8,7 @@ import type { AuditEventItem } from "@/components/audit/AuditTable";
 import ExportButton from "@/components/audit/ExportButton";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-import { Bookmark, ShieldCheck, PlusCircle, GitMerge, Settings, ShieldAlert } from "lucide-react";
+import { Bookmark, ShieldCheck, PlusCircle, GitMerge, Settings, ShieldAlert, ArrowLeft } from "lucide-react";
 
 
 export const AuditPage: React.FC = () => {
@@ -114,13 +114,22 @@ export const AuditPage: React.FC = () => {
 
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-[24px] sm:text-[26px] font-bold text-[#0F172A] tracking-tight leading-tight">
-            Unified Organization Audit Trail
-          </h1>
-          <p className="text-xs sm:text-[13.5px] text-[#64748B] font-normal mt-1">
-            A single, immutable trail of all actions across Support Hub and Review Console.
-          </p>
+        <div className="flex items-start gap-4">
+          <Link
+            to="/prs"
+            className="p-2 mt-1 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-700 transition-colors cursor-pointer shadow-sm shrink-0"
+            aria-label="Go back"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div>
+            <h1 className="text-[24px] sm:text-[26px] font-bold text-[#0F172A] tracking-tight leading-tight">
+              Unified Organization Audit Trail
+            </h1>
+            <p className="text-xs sm:text-[13.5px] text-[#64748B] font-normal mt-1">
+              A single, immutable trail of all actions across Support Hub and Review Console.
+            </p>
+          </div>
         </div>
 
         {/* Top Right Action Buttons */}
