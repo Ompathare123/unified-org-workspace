@@ -15,12 +15,14 @@ export const AuditPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { activeOrg } = useAuth();
 
+  const [filters, setFilters] = React.useState<any>({});
+
   // 1. Fetch Audit Logs from Backend API
   const { data: auditData, isLoading, refetch } = useQuery({
-    queryKey: ["audit-logs", activeOrg?.id],
+    queryKey: ["audit-logs", activeOrg?.id, filters],
     queryFn: async () => {
       try {
-        const res = await api.get("/audit-logs");
+        const res = await api.get("/audit-logs", { params: filters });
         return res.data;
       } catch {
         return [];
@@ -138,8 +140,14 @@ export const AuditPage: React.FC = () => {
 
       {/* Filter Panel */}
       <AuditFilterPanel
-        onApplyFilters={() => toast.success("Filters applied successfully!")}
-        onClearFilters={() => toast.success("Filters reset!")}
+        onApplyFilters={(newFilters) => {
+          setFilters(newFilters);
+          toast.success("Filters applied successfully!");
+        }}
+        onClearFilters={() => {
+          setFilters({});
+          toast.success("Filters reset!");
+        }}
       />
 
       {/* Audit Events Table */}

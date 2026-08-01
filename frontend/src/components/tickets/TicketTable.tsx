@@ -61,6 +61,7 @@ export const TicketTable: React.FC<TicketTableProps> = ({
     return data.filter((item) => {
       const matchesSearch =
         item.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.rawId && item.rawId.toLowerCase().includes(searchQuery.toLowerCase())) ||
         item.subject.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus = statusFilter === "All" || item.status === statusFilter;
       const matchesPriority = priorityFilter === "All" || item.priority === priorityFilter;

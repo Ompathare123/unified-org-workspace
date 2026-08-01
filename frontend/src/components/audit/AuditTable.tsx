@@ -206,8 +206,8 @@ export const AuditTable: React.FC<AuditTableProps> = ({
       {/* Table Header Counter Bar */}
       <div className="px-6 py-3.5 border-b border-slate-100 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <span className="text-xs text-slate-500 font-normal">
-          Showing <strong className="font-semibold text-slate-700">1 to 20</strong> of{" "}
-          <strong className="font-semibold text-slate-700">8,432</strong> audit events
+          Showing <strong className="font-semibold text-slate-700">{data.length === 0 ? 0 : table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to {Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, data.length)}</strong> of{" "}
+          <strong className="font-semibold text-slate-700">{data.length}</strong> audit events
         </span>
 
         <div className="flex items-center gap-2">
@@ -283,9 +283,9 @@ export const AuditTable: React.FC<AuditTableProps> = ({
       {/* Pagination Footer */}
       <AuditPagination
         currentPage={table.getState().pagination.pageIndex + 1}
-        totalPages={table.getPageCount() || 422}
+        totalPages={table.getPageCount() || 1}
         pageSize={table.getState().pagination.pageSize}
-        totalItems={8432}
+        totalItems={data.length}
         onPageChange={(page) => table.setPageIndex(page - 1)}
         onPageSizeChange={(size) => table.setPageSize(size)}
       />

@@ -8,7 +8,7 @@ import { SlidersHorizontal, ChevronDown, Search } from "lucide-react";
 
 
 interface AuditFilterPanelProps {
-  onApplyFilters?: () => void;
+  onApplyFilters?: (filters: any) => void;
   onClearFilters?: () => void;
 }
 
@@ -268,7 +268,14 @@ export const AuditFilterPanel: React.FC<AuditFilterPanelProps> = ({
 
           <button
             type="button"
-            onClick={onApplyFilters}
+            onClick={() => onApplyFilters?.({
+              startDate,
+              endDate,
+              userId: userFilter === "All Users" ? undefined : userFilter,
+              action: actionFilter === "All Actions" ? undefined : actionFilter,
+              entityType: resourceTypeFilter === "All Types" ? undefined : resourceTypeFilter,
+              entityId: entityIdSearch || undefined
+            })}
             className="h-10 px-5 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-semibold shadow-[0_2px_8px_rgba(0,102,255,0.25)] flex items-center gap-2 transition-all cursor-pointer"
           >
             <Search className="w-3.5 h-3.5 text-white" />

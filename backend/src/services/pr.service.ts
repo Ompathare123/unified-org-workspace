@@ -114,7 +114,7 @@ class PRService {
       whereClause.status = query.status as PRStatus;
     }
     if (query?.author && query.author !== "All") {
-      whereClause.author = { fullName: query.author };
+      whereClause.authorId = query.author;
     }
     if (query?.branch && query.branch !== "All") {
       whereClause.targetBranch = query.branch;
