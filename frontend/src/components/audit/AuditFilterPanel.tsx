@@ -16,8 +16,8 @@ export const AuditFilterPanel: React.FC<AuditFilterPanelProps> = ({
   onApplyFilters,
   onClearFilters,
 }) => {
-  const [startDate, setStartDate] = useState("May 17, 2025");
-  const [endDate, setEndDate] = useState("May 24, 2025");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [userFilter, setUserFilter] = useState("All Users");
   const [actionFilter, setActionFilter] = useState("All Actions");
   const [resourceTypeFilter, setResourceTypeFilter] = useState("All Types");
@@ -126,14 +126,14 @@ export const AuditFilterPanel: React.FC<AuditFilterPanelProps> = ({
               className="w-full appearance-none h-10 pl-3.5 pr-8 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 outline-none focus:border-[#0066FF] cursor-pointer"
             >
               <option value="All Actions">All Actions</option>
-              <option value="Viewed Ticket">Viewed Ticket</option>
-              <option value="Created Ticket">Created Ticket</option>
-              <option value="Scoping Check Passed">Scoping Check Passed</option>
-              <option value="Commented">Commented</option>
-              <option value="Approved PR">Approved PR</option>
-              <option value="Merged PR">Merged PR</option>
-              <option value="User Login">User Login</option>
-              <option value="Permission Denied">Permission Denied</option>
+              <option value="TICKET_CREATED">Created Ticket</option>
+              <option value="TICKET_UPDATED">Updated Ticket</option>
+              <option value="TICKET_DELETED">Deleted Ticket</option>
+              <option value="PR_CREATED">Created PR</option>
+              <option value="PR_UPDATED">Updated PR</option>
+              <option value="PR_MERGED">Merged PR</option>
+              <option value="COMMENT_CREATED">Commented</option>
+              <option value="USER_LOGIN">User Login</option>
             </select>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
@@ -150,11 +150,10 @@ export const AuditFilterPanel: React.FC<AuditFilterPanelProps> = ({
             >
               <option value="All Types">All Types</option>
               <option value="Ticket">Ticket</option>
-              <option value="Pull Request">Pull Request</option>
-              <option value="Security Check">Security Check</option>
-              <option value="Comment">Comment</option>
-              <option value="Auth">Auth</option>
-              <option value="Audit Log">Audit Log</option>
+              <option value="PullRequest">Pull Request</option>
+              <option value="TicketComment">Ticket Comment</option>
+              <option value="PRComment">PR Comment</option>
+              <option value="User">User</option>
             </select>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
