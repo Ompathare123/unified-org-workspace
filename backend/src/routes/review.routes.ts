@@ -7,7 +7,7 @@ import { Role } from "@prisma/client";
 const router = Router({ mergeParams: true });
 
 // POST   /api/prs/:prId/reviews      — submit a review
-router.post("/", authenticate, requireRole(Role.ORG_ADMIN, Role.REVIEWER), ReviewController.create);
+router.post("/", authenticate, requireRole(Role.ORG_ADMIN, Role.REVIEWER, Role.DEVELOPER), ReviewController.create);
 
 // GET    /api/prs/:prId/reviews      — list all reviews for a PR
 router.get("/", authenticate, ReviewController.getByPR);

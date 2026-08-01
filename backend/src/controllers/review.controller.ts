@@ -16,7 +16,8 @@ class ReviewController {
 
       return res.status(201).json(review);
     } catch (error) {
-      return res.status(400).json({
+      const status = (error as any).status || 400;
+      return res.status(status).json({
         message: error instanceof Error ? error.message : "Failed to submit review",
       });
     }
