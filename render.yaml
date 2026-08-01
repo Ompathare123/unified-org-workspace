@@ -1,10 +1,9 @@
-services:
+databases:
   # 1. PostgreSQL Database
-  - type: psql
-    name: unified-org-db
+  - name: unified-org-db
     plan: free
 
-  # 2. Node.js Backend API
+services:
   - type: web
     name: unified-org-backend
     env: node
