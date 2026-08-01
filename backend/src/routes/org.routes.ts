@@ -9,8 +9,8 @@ const router = Router();
 // Apply auth middleware to all routes
 router.use(authenticate);
 
-// ── MEMBER MANAGEMENT (Org Admin only) ────────────────────────────────────
-router.get("/members", requireRole(Role.ORG_ADMIN), OrgController.listMembers);
+// ── MEMBER MANAGEMENT ────────────────────────────────────
+router.get("/members", OrgController.listMembers);
 router.delete("/members/:userId", requireRole(Role.ORG_ADMIN), OrgController.removeMember);
 router.put("/members/:userId/role", requireRole(Role.ORG_ADMIN), OrgController.updateMemberRole);
 
